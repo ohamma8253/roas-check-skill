@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROAS 점검 이력판</title>
+<style>
+:root{--bg:#f3f2ee;--surface:#fff;--surface-2:#f0eee8;--text:#1c1c1a;--muted:#5f5e58;--line:#d9d6cc;--wire:#aaa699;--accent:#2f5fd0;
+--bad:#b53a09;--bad-soft:#fde6d6;--warn:#8f6508;--warn-soft:#f7eed9;--ok:#1b7a50;--ok-soft:#e1f2e8;--na:#6f6e68;--na-soft:#efeeea;--skip:#9b988f;--glyph-in:#fff;
+--pass:#1b7a50;--path:#b53a09;--S:#8f6508;--J:#1b7a50;--M:#2f5fd0;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111214;--surface:#1a1c20;--surface-2:#23262c;--text:#e9e8e3;--muted:#a9a8a1;--line:#33363d;--wire:#5a5e68;--accent:#86a8ff;
+--bad:#ff8a4c;--bad-soft:#3e2318;--warn:#e3b35f;--warn-soft:#2e2717;--ok:#5fd09c;--ok-soft:#15261d;--na:#9a9993;--na-soft:#22242a;--skip:#6d7079;--glyph-in:#15161a;--pass:#5fd09c;--path:#ff8a4c;--S:#e3b35f;--J:#5fd09c;--M:#86a8ff;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3)}}
+:root[data-theme="dark"]{--bg:#111214;--surface:#1a1c20;--surface-2:#23262c;--text:#e9e8e3;--muted:#a9a8a1;--line:#33363d;--wire:#5a5e68;--accent:#86a8ff;
+--bad:#ff8a4c;--bad-soft:#3e2318;--warn:#e3b35f;--warn-soft:#2e2717;--ok:#5fd09c;--ok-soft:#15261d;--na:#9a9993;--na-soft:#22242a;--skip:#6d7079;--glyph-in:#15161a;--pass:#5fd09c;--path:#ff8a4c;--S:#e3b35f;--J:#5fd09c;--M:#86a8ff;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3)}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14.5px/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:1440px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:21px;margin:0;line-height:1.3}h2{font-size:15.5px;margin:0 0 8px}h3{font-size:13.5px;margin:12px 0 4px}
+.muted{color:var(--muted)}.small{font-size:12.5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+.ver{font-size:11.5px;font-weight:800;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted);vertical-align:middle;margin-left:6px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tbtn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:5px 11px;cursor:pointer;font-size:12.5px;white-space:nowrap}
+/* 상태 기호 — 모양 + 글자, 색은 덧붙임 */
+.ic{width:14px;height:14px;flex:none;vertical-align:-2px;display:inline-block}
+.ic.bad{color:var(--bad)}.ic.warn{color:var(--warn)}.ic.ok{color:var(--ok)}.ic.na{color:var(--na)}.ic.skip{color:var(--skip)}
+.st{display:inline-flex;align-items:center;gap:4px;font-weight:800;white-space:nowrap}
+.st.bad{color:var(--bad)}.st.warn{color:var(--warn)}.st.ok{color:var(--ok)}.st.na{color:var(--na)}.st.skip{color:var(--muted)}
+.tag{font-size:11px;font-weight:800;padding:0 7px;border-radius:999px;border:1.5px solid var(--bad);color:var(--bad);white-space:nowrap}
+.tag.day{border-style:dashed}
+/* 판정 띠 */
+.band{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr);gap:0;margin:12px 0 14px;padding:0}
+.band>section{padding:13px 16px;min-width:0}.band>section+section{border-left:1px solid var(--line)}
+.band .k{font-size:12px;font-weight:800;color:var(--muted);display:flex;align-items:center;gap:6px}
+.band .v{font-size:20px;font-weight:800;line-height:1.3;margin:2px 0 4px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:12.5px}.chain b{font-weight:800}.chain .ar{color:var(--muted)}
+.dec{font-size:11px;font-weight:800;border:1px solid var(--line);border-radius:6px;padding:0 5px}
+.todo-l{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;counter-reset:t}
+.todo-l li{counter-increment:t;display:grid;grid-template-columns:20px minmax(0,1fr);gap:6px;font-size:13px;line-height:1.45}
+.todo-l li::before{content:counter(t);font-weight:800;font-size:12px;width:20px;height:20px;border-radius:50%;background:var(--text);color:var(--surface);display:grid;place-items:center}
+.todo-l .wh{display:block;font-size:11.5px;color:var(--muted)}
+.lnk{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-weight:700;font-size:12.5px;text-align:left;text-decoration:underline;text-underline-offset:2px}
+.gauge{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:6px 0 5px;gap:2px;background:var(--surface)}
+.gauge i{display:block;height:100%;min-width:3px}
+.f-bad{background:var(--bad)}.f-warn{background:var(--warn)}.f-ok{background:var(--ok)}
+.f-na{background:radial-gradient(circle,var(--na) 1.2px,transparent 1.6px) 0 0/5px 5px,var(--na-soft)}
+.f-skip{background:repeating-linear-gradient(135deg,var(--skip) 0 1.5px,transparent 1.5px 5px),var(--surface-2)}
+.leg{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:12px}.leg span{display:inline-flex;align-items:center;gap:4px}
+.gapl{margin:6px 0 0;padding:0;list-style:none;font-size:12.5px}.gapl li{display:flex;justify-content:space-between;gap:8px;border-top:1px dashed var(--line);padding:3px 0}
+.warnbox{margin-top:7px;padding:7px 9px;border-radius:9px;border:1.5px dashed var(--warn);font-size:12.5px;background:var(--warn-soft)}
+@media(max-width:980px){.band{grid-template-columns:1fr}.band>section+section{border-left:0;border-top:1px solid var(--line)}}
+/* 본문 배치 */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
+.side{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow:auto}
+@media(max-width:1179px){.main{grid-template-columns:minmax(0,1fr)}.side{position:static;max-height:none;overflow:visible}}
+/* 이력판: 줄 = 자리, 칸 = 날 · 주 */
+.circ{padding:14px 16px 12px;min-width:0}
+.circ>h2{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.kbd{font-size:11.5px;color:var(--muted);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin:2px 0 10px}.legend span{display:inline-flex;align-items:center;gap:5px}
+.nrs{display:inline-block;width:14px;height:14px;border-radius:3px;background:repeating-linear-gradient(135deg,var(--skip) 0 1.5px,transparent 1.5px 5px),var(--surface-2)}
+.pathk{display:inline-block;width:5px;height:14px;background:var(--bad)}.stopk{display:inline-block;width:16px;height:12px;border:3px double var(--bad);border-radius:3px}
+.gscroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.gt{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;min-width:calc(var(--namew) + var(--hn) * var(--hcw) + var(--todayw));font-size:13px;--namew:200px;--todayw:300px}
+.gt th,.gt td{border-bottom:1px solid var(--line);padding:0;vertical-align:middle;background:var(--surface)}
+.gt thead th{font-size:11.5px;color:var(--muted);font-weight:700;padding:6px 4px;position:sticky;top:0;z-index:2}
+.gt .nmc{position:sticky;left:0;z-index:1;width:var(--namew);min-width:var(--namew);text-align:left;border-right:1px solid var(--line)}
+.gt .hc{width:var(--hcw);min-width:var(--hcw);text-align:center}.gt thead .hc{white-space:nowrap;font-size:10.5px;padding:6px 0}
+.gt .tc{position:sticky;right:0;z-index:1;min-width:var(--todayw);text-align:left;border-left:2px solid var(--text);padding:5px 8px}
+.gt thead .tc{color:var(--text)}
+.gt td.nr{background:repeating-linear-gradient(135deg,var(--skip) 0 1.5px,transparent 1.5px 5px),var(--surface-2)}
+.hg{display:inline-grid;place-items:center}.hg.skip{opacity:.55}
+.rb{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;width:100%;min-height:32px;border:0;background:none;text-align:left;padding:5px 8px;cursor:pointer;font:inherit;color:inherit}
+.rb .nm{font-weight:700}.rb .cvn{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:700}.rb .cvn.thin{color:var(--warn)}
+.rb[aria-pressed="true"]{box-shadow:inset 0 0 0 3px var(--accent)}
+tr.quiet .rb .nm{font-weight:500;color:var(--muted)}
+tr.path .nmc{box-shadow:inset 5px 0 0 var(--bad)}
+tr.stop th,tr.stop td{background:var(--bad-soft)}tr.stop .nmc{box-shadow:inset 5px 0 0 var(--bad)}tr.stop .rb{outline:3px double var(--bad);outline-offset:-4px}
+.stoptag{font-size:10.5px;font-weight:800;color:var(--glyph-in);background:var(--bad);border-radius:5px;padding:0 6px}
+.sametag{font-size:10.5px;font-weight:800;color:var(--bad);border:1.5px solid var(--bad);border-radius:5px;padding:0 5px}
+tr.gh th,tr.gh td{background:var(--surface-2);border-bottom:1px solid var(--line)}tr.gh .rb{min-height:32px}tr.gh th>.st{display:inline-flex;padding:6px 8px}
+tr.gh.hit .nmc{box-shadow:inset 5px 0 0 var(--bad)}
+.tc .tline{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;line-height:1.4;white-space:nowrap}.tc .tx{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis}.tc .lts{flex:none;flex-wrap:nowrap}.tc .streak{font-size:11.5px;color:var(--bad);border:1.5px solid var(--bad);border-radius:999px;padding:0 6px}
+.tc .tl2{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:2px}.tc[data-id]{cursor:pointer}
+.lts{display:flex;flex-wrap:wrap;gap:2px}.lt{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:4px;position:relative}
+.lt:hover{background:var(--surface-2)}.lt.x::after{content:"+";position:absolute;right:-3px;top:-6px;font-size:10px;font-weight:900;color:var(--text)}
+.bar{grid-column:1/-1;height:4px;border-radius:2px;background:var(--line);position:relative}.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--text)}.bar i.on{background:var(--bad)}
+.spark{display:inline-flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}.spark svg{display:block}
+@media(max-width:759px){.circ{padding:12px}.gt{--namew:118px;--todayw:168px;font-size:12.5px}.rb{padding:5px 6px}.rb .cvn{margin-left:0}.tc .tline{flex-wrap:wrap;white-space:normal}.tc .tx{flex-basis:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tc .lts{display:none}}
+/* 진행 순서: 스킬의 카드 흐름 */
+.tab .n:empty{display:none}
+.fmap{display:flex;align-items:stretch;margin:6px 0 14px;min-width:0}
+.fmap .far{flex:none;width:22px;height:16px;align-self:center;color:var(--muted)}
+.fbx{flex:1 1 0;min-width:0;align-self:center;display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);padding:7px 9px;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.fbx:hover{background:var(--surface-2)}
+.fbx .no{font-size:11px;font-weight:800;color:var(--muted)}.fbx .tt{font-weight:800;font-size:13.5px;line-height:1.3}
+.fbx .trc{display:flex;gap:4px;align-items:flex-start;font-size:11.5px;line-height:1.35}.fbx .trc .st{flex:none;padding-top:1px}
+.fbx.unseen,.fc.unseen{border-style:dashed}
+.fbx.path,.fc.path{box-shadow:inset 0 4px 0 var(--bad)}
+.fbx.stop{border:3px double var(--bad);background:var(--bad-soft)}.fc.stop{border:3px double var(--bad)}
+.ffork{flex:1.15 1 0;min-width:0;display:flex;flex-direction:column;gap:6px;padding:4px 6px;border:1.5px dashed var(--wire);border-radius:12px}
+.ffork .fk{font-size:11px;line-height:1.3}
+.fcards{display:flex;flex-direction:column;gap:10px}
+.ffk{display:flex;flex-direction:column;gap:10px;padding-left:10px;border-left:2px dashed var(--wire)}
+.fc{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);min-width:0}
+.fc h3{margin:0 0 4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:14.5px}
+.fc .fno{font-size:11.5px;font-weight:800;color:var(--glyph-in);background:var(--text);border-radius:6px;padding:0 6px}
+.pathtag{font-size:10.5px;font-weight:800;color:var(--bad);border:1.5px solid var(--bad);border-radius:5px;padding:0 5px}
+.fq{margin:0 0 2px;font-weight:700}.ftr{margin:0 0 4px}
+.fgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 14px;margin-top:4px}
+.fgrid h4{font-size:12px;color:var(--muted);margin:6px 0 2px}.fsec>summary{list-style:none;cursor:pointer}.fsec>summary::-webkit-details-marker{display:none}.fsec>summary h4{display:inline}.fsec>summary h4::after{content:" ▾"}.fsec:not([open])>summary h4::after{content:" ▸ 펼치기"}
+.fgrid ul{margin:0;padding-left:17px;font-size:12.5px;line-height:1.5}.fgrid li{margin:1px 0}
+.fbr{list-style:none;padding-left:0!important}.fbr li{border-top:1px dashed var(--line);padding:4px 0 4px 8px;display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center}
+.fbr li.on{border-left:4px double var(--bad);background:var(--bad-soft);border-radius:0 6px 6px 0}.fbr .cnd{font-weight:700}.fbr .to{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}
+.fbund{display:flex;flex-direction:column;gap:6px;margin-top:6px}.fb{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12.5px}.fb.on{border:3px double var(--bad)}
+.chipb.stopc{border:3px double var(--bad)}
+.fother{margin-top:16px;border-top:1px solid var(--line);padding-top:10px}.fother>summary{cursor:pointer;font-weight:800}
+tr.flash .rb{box-shadow:inset 0 0 0 3px var(--accent);background:var(--surface-2)}
+@media(max-width:860px){.fgrid{grid-template-columns:1fr}}
+@media(max-width:759px){.fmap{flex-direction:column;gap:0}.fmap .far{transform:rotate(90deg);margin:3px 0 3px 18px}.fbx{flex:none;align-self:stretch}.ffork{flex:none}.ffk{padding-left:6px}}
+/* 옆 패널 · 서랍 */
+.panel h2{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.iss{border:1px solid var(--line);border-left:5px solid var(--skip);border-radius:10px;padding:8px 10px;margin-top:8px;background:var(--surface)}
+.iss.bad{border-left-color:var(--bad)}.iss.warn{border-left-color:var(--warn);border-left-style:double;border-left-width:6px}.iss.ok{border-left-color:var(--ok)}.iss.na,.iss.skip{border-left-style:dashed}
+.iss .w2{font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px 8px;align-items:center}.iss .q{font-weight:800}.iss .tg{font-size:12px;color:var(--muted)}
+.iss .ev{font-size:12.5px;margin-top:3px}.iss .td{font-size:12.5px;font-weight:700;margin-top:3px}.iss .why{font-size:12px;margin-top:4px;color:var(--muted)}
+.iss.flash{box-shadow:0 0 0 3px var(--accent)}
+.links{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.chipb{font-size:12px;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:2px 8px;cursor:pointer}
+.xbtn{margin-left:auto}
+.hyp{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:8px}
+.hyp.r1{border:3px double var(--bad)}
+@media(max-width:1179px){
+ #detail{display:none;position:fixed;z-index:20;top:0;right:0;bottom:0;width:min(440px,100%);overflow:auto;border-radius:0;box-shadow:-8px 0 30px rgba(0,0,0,.25)}
+ #detail.open{display:block}
+ #detail .xbtn{position:sticky;top:0}
+ #trace{order:2}
+}
+@media(max-width:759px){#detail{top:auto;left:0;width:100%;max-height:82vh;border-radius:16px 16px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.3)}}
+/* 탭: 체크리스트 · 할 일 · 빈 곳 */
+.tabs{margin-top:14px}
+.tablist{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.tab{border:0;background:none;padding:9px 12px;cursor:pointer;font-weight:800;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--text)}
+.tab .n{font-size:11.5px;font-weight:800;margin-left:4px;padding:0 6px;border-radius:999px;background:var(--surface-2)}
+.tabpanel[hidden]{display:none}
+.issues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}@media(max-width:860px){.issues{grid-template-columns:1fr}}
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.fbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;cursor:pointer;font-size:12.5px;display:inline-flex;gap:4px;align-items:center}
+.fbtn[aria-pressed="true"]{background:var(--text);color:var(--surface);border-color:var(--text)}.fbtn[aria-pressed="true"] .ic{color:var(--surface)}
+.grp{border-top:1px solid var(--line)}.grp>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:8px 2px}.grp>summary::-webkit-details-marker{display:none}
+.grp>summary h3{margin:0;font-size:13px}.grp>summary::after{content:"펼치기";margin-left:auto;font-size:11.5px;color:var(--muted)}.grp[open]>summary::after{content:"접기"}.grp>.ck{margin-left:24px}
+@media(max-width:640px){.grp>.ck{margin-left:4px}}
+.ck{border-bottom:1px solid var(--line)}.ck>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:18px 96px minmax(0,1fr) auto 14px;gap:8px;align-items:baseline;padding:6px 2px;font-size:13px}
+.ck>summary::-webkit-details-marker{display:none}.ck>summary .nd{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.ck>summary::after{content:"＋";color:var(--muted);font-size:12px}.ck[open]>summary::after{content:"－"}
+.ck .body{padding:0 2px 9px 130px;font-size:12.5px}.ck .body p{margin:2px 0}
+.ck.done>summary .qx{color:var(--muted)}
+@media(max-width:640px){.ck>summary{grid-template-columns:18px minmax(0,1fr) 14px}.ck>summary .st{grid-column:2;grid-row:1}.ck>summary .qx{grid-column:2;grid-row:2}.ck>summary::after{grid-column:3;grid-row:1}.ck>summary .nd{display:none}.ck .body{padding-left:2px}}
+/* 체크리스트 진행 */
+.box{display:inline-grid;place-items:center;width:16px;height:16px;border:1.6px solid var(--muted);border-radius:4px;font-size:11px;font-weight:900;line-height:1;flex:none;align-self:center}
+.box.on{background:var(--text);border-color:var(--text);color:var(--surface)}
+.prog{height:10px;border-radius:5px;overflow:hidden;margin:6px 0 4px;background:repeating-linear-gradient(135deg,var(--skip) 0 1.5px,transparent 1.5px 5px),var(--surface-2)}.prog i{display:block;height:100%;background:var(--text)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12.5px;display:inline-flex;gap:5px;align-items:center;line-height:1.3}
+.btn:hover{border-color:var(--muted)}.btn.pri{background:var(--text);color:var(--surface);border-color:var(--text);font-weight:800}.btn.pri .ic{color:var(--surface)}
+.btn[aria-pressed="true"]{border:2px solid var(--text);font-weight:800;background:var(--surface-2)}
+.rec{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.rec .lab{font-size:12px;color:var(--muted);font-weight:700;width:100%}
+.rec .done-t{font-size:12px;font-weight:700;width:100%}
+.memo{flex:1 1 200px;min-width:0;border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--surface);color:var(--text);font:inherit;font-size:12.5px}
+.runner{border:2px solid var(--text);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.runner .rq{font-size:16px;font-weight:800;margin:4px 0 2px;outline-offset:4px}.runner .meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px 10px;align-items:center}
+.runner .auto{margin-top:8px;padding:8px 10px;border-radius:9px;background:var(--surface-2);font-size:12.5px}
+.runner .tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.lt.done{box-shadow:inset 0 -2.5px 0 var(--text)}
+.chk-sum{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;vertical-align:top;padding:7px 8px;border-bottom:1px solid var(--line)}th{font-size:11.5px;color:var(--muted)}
+.chip{font-size:11.5px;padding:1px 7px;border-radius:7px;border:1px solid var(--line);margin:0 4px 4px 0;display:inline-block}
+@media(max-width:640px){table.stack thead{display:none}table.stack tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}table.stack td{display:block;border:0;padding:2px 0}table.stack td::before{content:attr(data-k);display:block;font-size:11.5px;color:var(--muted);font-weight:700}}
+.lay{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.lay .gauge{margin:0}@media(max-width:640px){.lay{grid-template-columns:1fr auto}.lay .gauge{grid-column:1/-1;order:3}}
+@media print{.tablist,#theme,.xbtn,.kbd{display:none}.tabpanel[hidden]{display:block}#detail{display:block;position:static;box-shadow:none}.side{position:static;max-height:none}.main{grid-template-columns:1fr}.w.flow{animation:none}body{background:#fff}}
+@media (forced-colors:active){.node,.gate,.iss{border:2px solid CanvasText}.gauge i{border:1px solid CanvasText}}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-bad" viewBox="0 0 16 16"><path d="M8 .9 15.4 14.6H.6z" fill="currentColor"/><path d="M8 5.6v4.2M8 11.8v.4" stroke="var(--glyph-in)" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 .6 15.4 8 8 15.4.6 8z" fill="currentColor"/><circle cx="8" cy="8" r="1.9" fill="var(--glyph-in)"/></symbol>
+<symbol id="i-ok" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M4.6 8.3 7 10.6 11.4 5.7" fill="none" stroke="var(--glyph-in)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-na" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.1" fill="none" stroke="currentColor" stroke-width="1.9" stroke-dasharray="2.7 2.1"/></symbol>
+<symbol id="i-skip" viewBox="0 0 16 16"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.3 8h5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+</defs></svg>
+<div class="wrap">
+  <header class="head"><div><h1 id="title"></h1><div class="muted small" id="subtitle"></div></div><button class="tbtn" id="theme" type="button" aria-label="화면 밝기 바꾸기">◐ 밝기</button></header>
+  <div class="card band" id="band" role="region" aria-label="판정 요약"></div>
+  <div class="main">
+    <div class="card circ" id="circ" role="region" aria-labelledby="circ-h">
+      <h2><span id="circ-h">점검 이력판</span><span class="muted small" id="circ-sub"></span><span class="kbd" id="kbd-help">자리 사이는 위아래 화살표, 열기는 Enter</span></h2>
+      <div class="legend" id="legend"></div>
+      <div class="gscroll" id="gscroll"><div id="grid" role="group" aria-label="자리별 점검 이력" aria-describedby="kbd-help"></div></div>
+    </div>
+    <div class="side" id="side">
+      <div class="card panel" id="detail" role="region" aria-label="고른 자리의 점검" tabindex="-1"></div>
+      <div class="card panel" id="trace"></div>
+    </div>
+  </div>
+  <div class="card tabs" id="tabs"></div>
+  <div class="sr" aria-live="polite" id="live"></div>
+</div>
+<script id="data" type="application/json">__DATA__</script>
+<script id="cat" type="application/json">__CAT__</script>
+<script id="hist" type="application/json">__HIST__</script>
+<script>
+(function(){
+const R=JSON.parse(document.getElementById('data').textContent),CAT=JSON.parse(document.getElementById('cat').textContent);
+const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct=(x,d=0)=>x==null?'—':(x*100).toFixed(d)+'%',won=x=>x==null?'—':Math.round(x).toLocaleString('ko-KR');
+const chg=x=>x==null?'—':Math.abs(x)<0.005?'변화 없음':(x>0?'+':'')+(x*100).toFixed(1)+'%';
+const SN={bad:'이상',warn:'확인 필요',ok:'정상',na:'못 봄',skip:'안 봄'},ORD={bad:0,warn:1,ok:2,na:3,skip:4},STS=['bad','warn','ok','na','skip'];
+const ic=(s,z)=>`<svg class="ic ${s}" aria-hidden="true"${z?` style="width:${z}px;height:${z}px"`:''}><use href="#i-${s}"/></svg>`;
+const stx=s=>`<span class="st ${s}">${ic(s)}${SN[s]}</span>`;
+const R_=R.rhythm==='weekly'?'W':'D';
+const LANES=[
+ {id:'S',name:'시장',lens:'거시',gate:'업종도 같이 떨어졌나?',nodes:[['S1','시즌 상황'],['S2','수요 상황'],['S3','경쟁 상황'],['S4','업종 흐름'],['S5','플랫폼']]},
+ {id:'J',name:'자사',lens:'웹 상태',gate:'자사몰 전체도 떨어졌나?',nodes:[['J1','도착'],['J2','랜딩'],['J3','상품'],['J4','장바구니'],['J5','결제'],['J6','구매 완료']],rail:['JT','측정 태그','단계마다 메타로 이벤트가 나가나']},
+ {id:'M',name:'매체',lens:'메타 구조',gate:'메타 안 어디에 몰렸나?',nodes:[['M1','계정'],['M2','캠페인'],['M3','광고세트'],['M4','광고(소재)']],rail:['MX','단면','지면 · 기기 · 연령 · 소구점으로 가로질러 묶기']}];
+// 판정 엔진 · 체크리스트가 쓰는 예전 자리 이름 → 화면 이름
+const ALIAS={S1:['달력','시즌'],S2:['수요'],S3:['경매','경쟁']};
+const disp=s=>String(s==null?'':s).replace(/시장 › 달력( · 시즌)?/g,'시장 › 시즌 상황').replace(/시장 › 경매( · 경쟁)?/g,'시장 › 경쟁 상황').replace(/시장 › 수요(?! 상황)/g,'시장 › 수요 상황');
+const LINKS={M4:[['J1','연결 주소 — 광고가 보내는 사이트 주소']],J1:[['M4','연결 주소 — 이 주소로 보내는 광고']],JT:[['M1','전환 신호 — 픽셀 · 서버 이벤트가 계정 학습에 쓰인다']],M1:[['JT','전환 신호 — 사이트 측정 태그'],['J3','카탈로그 — 상품 정보']],J3:[['M1','카탈로그 — 메타 카탈로그 상품']],S3:[['M3','경쟁 — 광고세트의 타겟 · 입찰']],M3:[['S3','경쟁 — 시장의 노출 단가']]};
+const NAME={G:'신호판'},SHORT={G:'신호판'};LANES.forEach(l=>{l.nodes.forEach(([i,n])=>{NAME[i]=l.name+' › '+n;SHORT[i]=n});if(l.rail){NAME[l.rail[0]]=l.name+' › '+l.rail[1];SHORT[l.rail[0]]=l.rail[1]}});
+const ORDER=['G'].concat(...LANES.map(l=>l.nodes.map(n=>n[0]).concat(l.rail?[l.rail[0]]:[])));
+const FN={cpm:'노출 단가',ctr:'클릭률',cvr:'구매 전환율',aov:'객단가'};
+// ── 체크리스트(이번 리듬)와 실행 결과를 맞춘다: 램프 = 체크리스트 항목
+const norm=s=>s.replace(/\s/g,'');
+const lamps={};const used=new Set();
+CAT.filter(c=>c.r===R_).forEach(c=>{
+ let hits=R.checks.map((x,i)=>[x,i]).filter(([x])=>x.node===c.node&&norm(x.q)===norm(c.q));
+ if(!hits.length&&c.basis==='어제와 같나'){hits=R.checks.map((x,i)=>[x,i]).filter(([x])=>x.node===c.node&&x.q==='어제와 같나?').map(([x,i])=>[Object.assign({},x,{q:c.q}),i])}
+ if(!hits.length&&c.node==='G'&&c.q.startsWith('업종도'))hits=R.checks.map((x,i)=>[x,i]).filter(([x])=>x.node==='S4'&&x.q.startsWith('같은 업종'));
+ hits.forEach(([,i])=>used.add(i));
+ if(!hits.length&&c.node==='G'&&c.q.startsWith('어느 숫자가')&&(R.signal||R.factors)){const f=(R.signal||{}).factors||R.factors;const w=Object.entries(f).filter(([k,v])=>v.effect!=null).sort((a,b)=>a[1].effect-b[1].effect)[0];hits=[[{node:'G',where:'신호판',q:c.q,status:'ok',status_name:'정상',evidence:Object.entries(f).map(([k,v])=>FN[k]+' '+chg(v.change)).join(' · ')+(w?` ← ${FN[w[0]]} 몫이 가장 크다`:''),todo:'',basis:c.basis,target:'',urgency:''}]]}
+ const rs=hits.map(h=>h[0]);const st=rs.length?rs.map(x=>x.status).sort((a,b)=>ORD[a]-ORD[b])[0]:'skip';
+ (lamps[c.node]=lamps[c.node]||[]).push({c,rs,st});});
+R.checks.forEach((x,i)=>{if(used.has(i)||x.q==='어제와 같나?')return;(lamps[x.node]=lamps[x.node]||[]).push({c:{node:x.node,q:x.q,where:'',bad:'',todo:x.todo,basis:x.basis,extra:true},rs:[x],st:x.status})});
+Object.keys(lamps).forEach(k=>lamps[k].forEach((l,i)=>{l.id=k;l.i=i;l.auto=l.st;l.key=k+'|'+norm(l.c.q)+(l.c.extra?'|+':'')}));
+const ALL=ORDER.flatMap(k=>lamps[k]||[]);ALL.forEach((l,g)=>l.g=g);
+const autoSeen=l=>l.auto==='bad'||l.auto==='warn'||l.auto==='ok';
+// ── 체크리스트 기록(이 브라우저에 저장): 자동 판정은 '확인', 안 본 · 못 본 점검은 '직접' 기록
+const SKEY='roas-check:'+R.advertiser+':'+R.date+':'+R.rhythm;let REC={},SAVED=true;
+try{REC=JSON.parse(localStorage.getItem(SKEY)||'{}')||{}}catch(e){SAVED=false;REC={}}
+const save=()=>{try{localStorage.setItem(SKEY,JSON.stringify(REC));SAVED=true}catch(e){SAVED=false}};
+function applyRec(){ALL.forEach(l=>{const r=REC[l.key];l.done=!!(r&&r.st);l.st=l.done?r.st:l.auto;l.how=l.done?r.how:'';l.memo=r&&r.memo||''})}
+applyRec();
+const tally=ls=>{const t={bad:0,warn:0,ok:0,na:0,skip:0};ls.forEach(l=>t[l.st]++);return t};
+const cover=ids=>{const ls=ids.flatMap(k=>lamps[k]||[]);const t=tally(ls);return {n:ls.length,seen:t.bad+t.warn+t.ok,done:ls.filter(l=>l.done).length,t}};
+const worst=k=>{const t=tally(lamps[k]||[]);return ['bad','warn','ok','na'].find(s=>t[s])||'skip'};
+const tallyTxt=t=>STS.filter(s=>t[s]).map(s=>`${SN[s]} ${t[s]}`).join(', ');
+const gaugeHtml=t=>`<div class="gauge" aria-hidden="true">${STS.filter(s=>t[s]).map(s=>`<i class="f-${s}" style="flex:${t[s]}"></i>`).join('')}</div>`;
+const OFF=R.sources.filter(x=>!x.on);
+const missing=id=>OFF.filter(s=>s.unlocks.includes(id)).map(s=>s.name);
+// ── 관문과 원인 자리
+const L=R.location,trail=L&&L.trail||[];const find=(n,q)=>R.checks.find(x=>x.node===n&&x.q.startsWith(q));
+const LV={account:'M1',campaign:'M2',adset:'M3',ad:'M4'};
+const HYP=R.hypotheses||[];
+function hypNodes(h){if(!h)return [];let lane=null;const out=[];
+ const hit=(p,[i,n])=>p===n||p.startsWith(n)||n.startsWith(p)||(ALIAS[i]||[]).some(a=>p.startsWith(a));
+ // '시장 › 경매 · 경쟁 · 매체 › 광고세트'처럼 레이어가 바뀌는 곳마다 ' › '가 다시 나온다
+ h.where.split(' · ').forEach(tok=>{let p=tok;if(tok.includes(' › ')){const [ln,rest]=tok.split(' › ');lane=LANES.find(l=>l.name===ln)||null;p=rest}
+  if(!lane)return;const m=lane.nodes.concat(lane.rail?[lane.rail]:[]).find(x=>hit(p,x));if(m&&!out.includes(m[0]))out.push(m[0])});
+ return out}
+let stopNode=null,PATH=[];
+if(R_==='D'&&L&&L.stop){stopNode=LV[L.stop.level]||null;const ms=['M1','M2','M3','M4'];if(stopNode)PATH=['G'].concat(ms.slice(0,ms.indexOf(stopNode)+1))}
+if(R_==='W'&&HYP[0]){const hn=hypNodes(HYP[0]);stopNode=hn[0]||null;PATH=['G'].concat(hn)}
+function gate(lid){const lane=LANES.find(l=>l.id===lid);
+ if(R_==='W'){const h=HYP.find(h=>h.where.indexOf(lane.name)===0);
+  if(h)return h.rank===1?{st:'hit',txt:'걸림 · 1순위 가설',ev:`${h.name} · 근거 ${h.strength}`}:{st:'lean',txt:`${h.rank}순위 가설 · 근거 ${h.strength}`,ev:h.name};
+  const ids=lane.nodes.map(n=>n[0]);const cv=cover(ids);
+  if(!cv.seen)return {st:'na',txt:'못 봄 · 이 레이어 원인을 지울 수 없다',ev:`점검 ${cv.n}개 중 본 것 없음`};
+  return cv.t.bad||cv.t.warn?{st:'lean',txt:'흐름에 이상 있음',ev:tallyTxt(cv.t)}:{st:'pass',txt:'통과 · 흐름 이상 없음',ev:`점검 ${cv.n}개 중 ${cv.seen}개 봄`}}
+ if(lid==='S'){const c=find('S4','같은 업종');if(!c||c.status==='na')return {st:'na',txt:'못 봄 · 시장 원인을 지울 수 없다',ev:'업종 묶음 없음'};return c.status==='bad'?{st:'hit',txt:'걸림 · 시장 원인 가능',ev:c.evidence}:{st:'pass',txt:'통과 · 우리만의 일',ev:c.evidence}}
+ if(lid==='J'){const c=find('G','자사몰 전체');if(!c||c.status==='na')return {st:'na',txt:'못 봄 · 자사 원인을 지울 수 없다',ev:'자사몰 매출 없음'};return c.status!=='ok'?{st:'hit',txt:'걸림 · 자사 원인 가능',ev:c.evidence}:{st:'pass',txt:'통과 · 메타 쪽이 큼',ev:c.evidence}}
+ if(lid==='M'){if(!trail.length)return {st:'na',txt:'못 봄',ev:''};return {st:'hit',txt:'걸림 · 몰림을 따라 내려감',ev:trail.map(t=>`${t.unit.name} ${t.decision.split(' ')[0]}`).join(' → ')}}}
+const GST={hit:['bad','걸림'],pass:['ok','통과'],lean:['warn','기울어짐'],na:['na','못 봄']};
+let sel=null;
+// ── 할 일(같은 할 일은 묶는다) — 자동 판정 + 체크리스트에서 직접 기록한 이상 · 확인 필요
+const URG={'즉시':0,'당일':1};
+function actions(){const m=new Map();
+ ALL.filter(l=>l.id!=='G'&&(l.st==='bad'||l.st==='warn')).forEach(l=>{
+  const xs=l.how==='직접'?[{node:l.id,where:NAME[l.id],q:l.c.q,target:'',status:l.st,evidence:'체크리스트에서 직접 기록'+(l.memo?' — '+l.memo:''),todo:l.c.todo||'',basis:l.c.basis,urgency:''}]:l.rs.filter(x=>x.status==='bad'||x.status==='warn');
+  xs.forEach(x=>{const k=x.todo||x.q;const o=m.get(k)||{todo:k,st:x.status,urg:x.urgency||'',items:[]};o.items.push(x);if(ORD[x.status]<ORD[o.st])o.st=x.status;if((URG[x.urgency]??9)<(URG[o.urg]??9))o.urg=x.urgency;m.set(k,o)})});
+ return [...m.values()].sort((a,b)=>(URG[a.urg]??9)-(URG[b.urg]??9)||ORD[a.st]-ORD[b.st])}
+let ACT=actions();
+const pgap=()=>PATH.filter(k=>R_==='D'||k!=='G').flatMap(k=>(lamps[k]||[]).filter(l=>l.st==='skip'||l.st==='na'));
+const streak=(()=>{const w=R.weeks||[];let n=0;for(let i=0;i<w.length-1&&w[i].roas<w[i+1].roas;i++)n++;return n})();
+// ── 체크리스트 진행 순서: 원인 길의 빈 점검 → 자동 이상 · 확인 필요 → 나머지 빈 점검(바깥 → 안) → 자동 정상
+const LATER=new Set();
+function prio(l){if(!autoSeen(l)&&PATH.includes(l.id)&&(R_==='D'||l.id!=='G'))return 0;if(l.auto==='bad'||l.auto==='warn')return 1;if(!autoSeen(l))return 2;return 3}
+const QUEUE=ALL.slice().sort((a,b)=>prio(a)-prio(b)||a.g-b.g);
+function nextLamp(){const left=QUEUE.filter(l=>!l.done);if(!left.length)return null;const n=left.find(l=>!LATER.has(l.key));if(n)return n;LATER.clear();return left[0]}
+function record(l,st){const r=REC[l.key]||{};r.st=st;r.how=autoSeen(l)&&st===l.auto?'확인':'직접';r.at=new Date().toISOString();REC[l.key]=r;LATER.delete(l.key);save()}
+function clearRec(l){const r=REC[l.key];if(r){delete r.st;delete r.how;if(!r.memo)delete REC[l.key]}save()}
+function recControls(l,ctx){const opts=['bad','warn','ok','na'];const lab=SN;
+ const head=l.done?`<span class="done-t"><span class="box on" aria-hidden="true">✓</span> 채움 · ${stx(l.st)} · ${l.how==='확인'?'자동 판정 확인':'직접 기록'}</span>`:autoSeen(l)?`<span class="lab">자동 판정이 맞나?</span>`:`<span class="lab">직접 본 결과</span>`;
+ const pri=autoSeen(l)&&!l.done?`<button class="btn pri" type="button" data-rec="${l.g}:${l.auto}">${ic(l.auto)}맞다 — ${SN[l.auto]}로 확인</button><span class="lab" style="width:auto">다르게 기록</span>`:'';
+ return `<div class="rec" role="group" aria-label="${esc(l.c.q)} 기록">${head}${pri}${opts.filter(s=>!(autoSeen(l)&&!l.done&&s===l.auto)).map(s=>`<button class="btn" type="button" data-rec="${l.g}:${s}" aria-pressed="${l.done&&l.st===s}">${ic(s)}${s==='na'?'못 봄(볼 수 없음)':lab[s]}</button>`).join('')}${l.done?`<button class="btn" type="button" data-rec="${l.g}:clear">되돌리기</button>`:''}${ctx==='run'?'':`<input class="memo" type="text" data-memo="${l.g}" value="${esc(l.memo)}" placeholder="메모(선택)" aria-label="${esc(l.c.q)} 메모">`}</div>`}
+// ── 판정 띠
+function band(){const c=tally(ALL),n=ALL.length,seen=c.bad+c.warn+c.ok,ext=ALL.filter(l=>l.c.extra).length,done=ALL.filter(l=>l.done).length,PG=pgap();
+ let a;
+ if(R_==='D'){a=`<div class="k">${ic(L&&L.stop?'bad':'na')}원인 자리</div><div class="v">${esc(L&&L.stop?L.stop.name:'찾지 못함')}</div>
+  <div class="chain">${trail.map((t,i)=>`${i?'<span class="ar" aria-hidden="true">→</span>':''}<b>${esc(t.unit.name)}</b> <span class="dec">${esc(t.decision.split(' ')[0])}</span>`).join('')}${L&&L.stop?'<span class="ar">→ 여기서 멈춤</span>':''}</div>`;
+  const s=R.signal;if(s){const wk=Object.entries(s.factors).filter(([k,v])=>v.effect!=null).sort((x,y)=>x[1].effect-y[1].effect)[0];
+   a+=`<p class="small" style="margin:6px 0 0">어제 ROAS <b>${pct(s.roas_now)}</b> · 앞 ${s.base_days}일 ${pct(s.roas_base)}${wk&&wk[1].effect<0?` — <b>${FN[wk[0]]} ${chg(s.factors[wk[0]].change)}</b>가 가장 크게 끌어내림`:''}</p>`}}
+ else{const h=HYP[0];a=`<div class="k">${ic(h?'bad':'ok')}가장 그럴듯한 원인</div><div class="v">${esc(h?h.name:'떨어진 숫자 없음')}</div>${h?`<div class="chain"><span>근거 <b>${esc(h.strength)}</b></span><span class="ar">·</span><span>${esc(disp(h.where))}</span></div><p class="small" style="margin:6px 0 0">${esc(h.why)}</p>`:''}
+  <p class="small" style="margin:4px 0 0">이번 주 ROAS <b>${pct((R.weeks||[{}])[0].roas)}</b>${streak?` · <b>${streak}주째 하락</b>`:''}</p>`}
+ const top=ACT.slice(0,3);
+ const b=`<div class="k">지금 할 일 <span class="muted">${ACT.length}건</span></div>${top.length?`<ol class="todo-l">${top.map(o=>`<li><span>${o.urg?`<span class="tag ${o.urg==='당일'?'day':''}">${esc(o.urg)}</span> `:''}${stx(o.st)} ${esc(o.todo)}<span class="wh">${esc([...new Set(o.items.map(x=>x.target||disp(x.where)))].join(' · '))}</span></span></li>`).join('')}</ol>${ACT.length>3?`<button class="lnk" data-go="todo" type="button">나머지 ${ACT.length-3}건 보기</button>`:''}`:'<p class="small muted">할 일이 없다</p>'}`;
+ const full=done===n;
+ const d=`<div class="k">${ic(full?'ok':'skip')}체크리스트 진행</div><div class="v" style="font-size:17px">${n}개 중 <b>${done}개</b> 채움 <span class="muted small">(${Math.round(done/n*100)}%)</span></div>
+  <div class="prog" role="progressbar" aria-label="체크리스트 채움" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${done}"><i style="width:${done/n*100}%"></i></div>
+  <div class="chk-sum"><span>자동으로 봄 ${ALL.filter(l=>autoSeen(l)).length}</span><span>확인함 ${ALL.filter(l=>l.how==='확인').length}</span><span>직접 채움 ${ALL.filter(l=>l.how==='직접').length}</span><span><b>남음 ${n-done}</b></span></div>
+  <div class="leg" style="margin-top:4px">${STS.filter(s=>c[s]).map(s=>`<span>${ic(s)}${SN[s]} ${c[s]}</span>`).join('')}</div>
+  ${PG.length?`<div class="warnbox">${ic('warn')} <b>${R_==='D'?'원인 길':'1순위 가설 자리'}에서 아직 안 본 점검 ${PG.length}개</b> — 결론 전에 직접 채운다.</div>`:''}
+  <p style="margin:8px 0 0">${full?`<b>체크리스트를 다 채웠다.</b> <button class="lnk" type="button" data-go="check">기록 보기</button>`:`<button class="btn pri" type="button" data-go="check">다음 점검 채우기 ▸</button>`}</p>
+  ${ext?`<p class="small muted" style="margin:4px 0 0">체크리스트 ${CAT.filter(x=>x.r===R_).length}개 + 체크리스트 밖 추가 점검 ${ext}개</p>`:''}`;
+ $('#band').innerHTML=`<section>${a}${sparkHtml()}</section><section>${b}</section><section>${d}</section>`;bindGo('#band')}
+// ── 자리 기호 · 화면 읽기 이름
+function ltsHtml(id){return `<span class="lts" aria-hidden="true">${(lamps[id]||[]).map(l=>`<span class="lt ${l.c.extra?'x':''} ${l.done?'done':''}" data-li="${l.i}" title="${esc(l.c.q)} — ${SN[l.st]}${l.done?' · 채움('+l.how+')':' · 남음'}">${ic(l.st)}</span>`).join('')}</span>`}
+function nodeLabel(id){const cv=cover([id]);const st=worst(id);if(!cv.n)return `${NAME[id]}. 이 리듬에는 점검이 없다.`;return `${NAME[id]}. ${SN[st]}. 점검 ${cv.n}개 중 ${cv.seen}개 봄: ${tallyTxt(cv.t)}. 체크리스트 ${cv.done}개 채움.${id===stopNode?(R_==='D'?' 원인 자리.':' 1순위 가설 자리.'):''}${PATH.includes(id)&&id!=='G'&&id!==stopNode?' 원인 길 위.':''}`}
+// ── 이력판: 줄 = 자리, 칸 = 실행한 날(데일리) · 주(위클리), 오른쪽 끝 = 이번 점검
+const HIST=(JSON.parse(document.getElementById('hist').textContent||'[]')||[]).filter(h=>h&&h.date<R.date);
+const DAY=864e5,addDays=(d,n)=>new Date(Date.parse(d+'T00:00:00Z')+n*DAY).toISOString().slice(0,10);
+const COLS=(R_==='D'?Array.from({length:13},(_,i)=>addDays(R.date,i-13)):Array.from({length:7},(_,i)=>addDays(R.date,(i-7)*7))).map(d=>({date:d,run:HIST.find(h=>h.date===d)||null}));
+const histSt=(run,id)=>{if(!run)return null;const xs=run.checks.filter(c=>c.node===id);if(!xs.length)return 'skip';return xs.map(c=>c.status).sort((a,b)=>ORD[a]-ORD[b])[0]};
+const md=d=>{const [,m,dd]=d.split('-');return `${+m}/${+dd}`};
+function sparkHtml(){let pts;
+ if(R_==='D'){const xs=HIST.filter(h=>h.roas!=null).concat(R.signal?[{date:R.date,roas:R.signal.roas_now}]:[]);pts=xs.map(h=>[h.date,h.roas])}
+ else pts=(R.weeks||[]).slice().reverse().map((w,i,a)=>[a.length-1-i===0?'이번 주':(a.length-1-i)+'주 전',w.roas]);
+ if(pts.length<2)return '';const vs=pts.map(p=>p[1]),mn=Math.min(...vs),mx=Math.max(...vs),w=170,h=36;
+ const xy=vs.map((v,i)=>[5+i*(w-10)/(vs.length-1),h-5-(mx>mn?(v-mn)/(mx-mn)*(h-12):0)]);
+ return `<span class="spark"><svg width="${w}" height="${h}" role="img" aria-label="ROAS 흐름 ${pts.map(p=>`${R_==='D'?md(p[0]):p[0]} ${pct(p[1])}`).join(', ')}"><path d="M${xy.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' L')}" fill="none" stroke="var(--text)" stroke-width="1.8"/>${xy.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===xy.length-1?3.6:2.2}" fill="${i===xy.length-1?'var(--bad)':'var(--surface)'}" stroke="var(--text)" stroke-width="1.3"><title>${R_==='D'?md(pts[i][0]):pts[i][0]} ${pct(pts[i][1])}</title></circle>`).join('')}</svg><span class="small muted">${R_==='D'?`실행 ${pts.length}번`:`${pts.length}주`} · ${pct(vs[0])} → ${pct(vs[vs.length-1])}</span></span>`}
+// 원인 자리 이상 근거에 따옴표로 든 이름(예: '가을 행사')이 다른 자리 이상에도 나오면 '같은 원인'으로 묶는다
+const SAMEKEY=(lamps[stopNode]||[]).flatMap(l=>l.rs).filter(x=>x.status==='bad').map(x=>((x.evidence||'').match(/'([^']+)'/)||[])[1]).filter(Boolean);
+function streakOf(id,st){if(st!=='bad'&&st!=='warn')return 0;let n=1;for(const c of COLS.slice().reverse()){if(!c.run)continue;if(histSt(c.run,id)===st)n++;else break}return n}
+function todayTxt(id){const ls=lamps[id]||[];if(!ls.length)return `<span class="muted">${R_==='D'?'데일리 점검 없음 · 위클리에서 본다':'위클리 점검 없음 · 데일리에서 본다'}</span>`;
+ const w=ls.filter(l=>l.st==='bad'||l.st==='warn').sort((a,b)=>ORD[a.st]-ORD[b.st])[0];const cv=cover([id]);
+ if(w){const x=w.how==='직접'?{evidence:'체크리스트에서 직접 기록'+(w.memo?' — '+w.memo:'')}:(w.rs.find(r=>r.status===w.st)||w.rs[0]||{evidence:w.c.q});const n=streakOf(id,worst(id));
+  return `<span class="st ${w.st}">${ic(w.st)}${SN[w.st]}</span> <span class="tx" title="${esc((x.target?x.target+' · ':'')+x.evidence)}">${esc((x.target?x.target+' · ':'')+x.evidence)}</span>${n>1?` <b class="streak">${n}회째</b>`:''}`}
+ const never=!cv.seen&&COLS.every(c=>!c.run||['skip','na'].includes(histSt(c.run,id)));
+ if(!cv.seen)return `<span class="st ${worst(id)}">${ic(worst(id))}${SN[worst(id)]}</span> <span class="tx muted">${never?'늘 비어 있음 · ':''}${esc(whyTxt(id))}</span>`;
+ return `<span class="st ok">${ic('ok')}정상 ${cv.t.ok}</span>${cv.n-cv.seen?` <span class="tx muted">· 비어 있음 ${cv.n-cv.seen}</span>`:''}`}
+function grid(){const n=COLS.length;
+ const head=`<thead><tr><th class="nmc" scope="col">자리</th>${COLS.map(c=>`<th scope="col" class="hc">${R_==='D'?md(c.date).split('/')[1]:md(c.date)}</th>`).join('')}<th class="tc" scope="col">${R_==='D'?`이번 점검 ${md(R.date)}`:`이번 주 ${md(R.date)}`}</th></tr></thead>`;
+ const row=(id,name)=>{const cv=cover([id]),st=worst(id),stop=id===stopNode,onPath=PATH.includes(id),thin=cv.n&&cv.seen/cv.n<0.5;
+  const same=id!==stopNode&&id!=='G'&&SAMEKEY.some(k=>(lamps[id]||[]).some(l=>l.rs.some(x=>x.status==='bad'&&(x.evidence||'').includes(`'${k}'`))));
+  return `<tr class="${onPath?'path':''} ${stop?'stop':''} ${st==='ok'||st==='skip'||st==='na'?'quiet':''}"><th class="nmc" scope="row"><button class="rb" id="n-${id}" data-id="${id}" data-nav type="button" tabindex="-1" aria-pressed="false" aria-label="${esc(nodeLabel(id))}"><span class="nm">${esc(id==='G'?'신호판 점검':SHORT[id])}</span>${stop?`<span class="stoptag">${R_==='D'?'원인 자리':'1순위 가설'}</span>`:''}${same?`<span class="sametag" title="원인 자리 근거와 같은 이름(${esc(SAMEKEY.join(', '))})이 나온다">같은 원인</span>`:''}<span class="cvn ${thin?'thin':''}">${cv.n?`${cv.seen}/${cv.n}`:''}</span></button></th>
+   ${COLS.map(c=>{const s=histSt(c.run,id);return s?`<td class="hc"><span class="hg ${s}" title="${md(c.date)} ${SN[s]}">${ic(s,13)}</span></td>`:`<td class="hc nr" title="${md(c.date)} 실행 없음"></td>`}).join('')}
+   <td class="tc" data-id="${id}"><div class="tline">${todayTxt(id)}${cv.n?ltsHtml(id):''}</div></td></tr>`};
+ const ghead=l=>{const gt=gate(l.id),[gs]=GST[gt.st],ids=l.nodes.map(x=>x[0]).concat(l.rail?[l.rail[0]]:[]),cv=cover(ids);
+  return `<tr class="gh ${gt.st}"><th class="nmc" scope="rowgroup"><button class="rb gb" id="g-${l.id}" data-gate="${l.id}" data-nav type="button" tabindex="-1" aria-pressed="false" aria-label="${l.name} 관문. ${esc(l.gate)} ${esc(gt.txt)}. 점검 ${cv.n}개 중 ${cv.seen}개 봄"><span class="st ${gs}">${ic(gs)}${l.name}</span> <span class="small">${esc(gt.txt)}</span></button></th><td class="ghx" colspan="${n}"></td><td class="tc ghx"><span class="small muted">${esc(l.gate)} · 점검 ${cv.n}개 중 ${cv.seen}개 봄</span></td></tr>`};
+ let body=`<tbody><tr class="gh"><th class="nmc" scope="rowgroup"><span class="st ${worst('G')}">${ic(worst('G'))}신호판</span></th><td class="ghx" colspan="${n}"></td><td class="tc ghx"></td></tr>${row('G','신호판 점검')}</tbody>`;
+ LANES.forEach(l=>{body+=`<tbody>${ghead(l)}${l.nodes.map(([i,nm])=>row(i,nm)).join('')}${l.rail?row(l.rail[0],l.rail[1]):''}</tbody>`});
+ $('#grid').innerHTML=`<table class="gt" style="--hn:${n};--hcw:${R_==='D'?26:38}px">${head}${body}</table>`;
+ $('#legend').innerHTML=STS.map(s=>`<span>${ic(s)}${SN[s]}</span>`).join('')+`<span><i class="nrs"></i>실행 없음</span><span><span class="lt done" style="width:14px">${ic('ok',11)}</span>밑줄 = 체크리스트에서 채움</span><span><i class="pathk"></i>원인 길</span><span><i class="stopk"></i>원인 자리</span><span>n/m = 이번 점검에서 본 것/전체(주황 = 절반 넘게 비어 있음)</span><span>n회째 = 같은 상태가 이어진 실행 수</span>`;
+ $$('#grid [data-nav]').forEach(b=>{b.addEventListener('click',()=>pick(b.dataset.gate?'gate:'+b.dataset.gate:b.dataset.id,{from:b}));b.addEventListener('focus',()=>{rove=b.id})});
+ $$('#grid td.tc[data-id]').forEach(td=>td.addEventListener('click',e=>{const b=document.getElementById('n-'+td.dataset.id);const li=e.target.closest('[data-li]');pick(td.dataset.id,{from:b,lamp:li?+li.dataset.li:null})}));
+ const cur=document.getElementById(rove)||$('#n-G');cur.tabIndex=0;
+ if(sel)$$('#grid [aria-pressed]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.gate&&sel==='gate:'+b.dataset.gate)||(!b.dataset.gate&&b.dataset.id===sel))));
+ const sc=$('#gscroll');sc.scrollLeft=sc.scrollWidth}
+let rove='n-G';
+// ── 위아래 화살표로 줄 사이 옮기기(로빙 탭 순서)
+function nav(e){const t=e.target.closest('[data-nav]');if(!t)return;const all=$$('#grid [data-nav]'),i=all.indexOf(t);let nx=null;
+ if(e.key==='ArrowDown')nx=all[i+1];else if(e.key==='ArrowUp')nx=all[i-1];else if(e.key==='Home')nx=all[0];else if(e.key==='End')nx=all[all.length-1];else return;
+ e.preventDefault();if(nx){all.forEach(x=>x.tabIndex=-1);nx.tabIndex=0;nx.focus()}}
+// ── 고르기: 표시만 바꾼다(포커스 유지)
+const drawer=()=>innerWidth<1180;let opener=null;
+function pick(id,o){o=o||{};sel=(sel===id&&o.lamp==null&&!o.keep)?null:id;opener=o.from||opener;
+ $$('#circ [aria-pressed]').forEach(b=>b.setAttribute('aria-pressed',String(!!sel&&((b.dataset.gate&&sel==='gate:'+b.dataset.gate)||(!b.dataset.gate&&b.dataset.id===sel)))));
+ if(o.from&&o.from.dataset.nav!==undefined){$$('#circ [data-nav]').forEach(x=>x.tabIndex=-1);o.from.tabIndex=0;rove=o.from.id}
+ detail();
+ const box=$('#detail');
+ if(drawer()){box.classList.toggle('open',!!sel);if(sel){box.focus()}else if(opener){opener.focus()}}
+ if(sel){$('#live').textContent=(sel.startsWith('gate:')?LANES.find(x=>x.id===sel.slice(5)).name+' 관문':NAME[sel])+' 점검을 열었다';
+  if(o.lamp!=null){const el=document.getElementById('d-'+o.lamp);if(el){el.classList.add('flash');el.scrollIntoView({block:'nearest'});setTimeout(()=>el.classList.remove('flash'),1400)}}}}
+// ── 옆 패널(데스크톱) · 서랍(좁은 화면)
+function card(x,id){return `<div class="iss ${x.status}"${id!=null?` id="d-${id}"`:''}><div class="w2">${stx(x.status)}<span>${esc(disp(x.where))}</span>${x.urgency?`<span class="tag ${x.urgency==='당일'?'day':''}">${esc(x.urgency)}</span>`:''}<span>${esc(x.basis||'')}</span></div><div class="q">${esc(x.q)}</div>${x.target?`<div class="tg">${esc(x.target)}</div>`:''}<div class="ev">${esc(x.evidence)}</div>${x.todo?`<div class="td">→ ${esc(x.todo)}</div>`:''}</div>`}
+function whyTxt(id){const m=missing(id);return m.length?`이 자리를 켜는 데이터 중 없는 것: ${m.join(' · ')}`:'자동 점검이 아직 없다 — 보는 곳을 직접 확인한다'}
+function guide(l){return `${l.c.where?`<div class="ev"><b>보는 곳</b> ${esc(l.c.where)}</div>`:''}${l.c.bad?`<div class="ev"><b>이상 신호</b> ${esc(l.c.bad)}</div>`:''}${l.c.todo?`<div class="td">→ ${esc(l.c.todo)}</div>`:''}`}
+function lampCard(l){const box=`<div class="iss ${l.st}" id="d-${l.i}"><div class="w2">${l.done?'<span class="box on" aria-hidden="true">✓</span>':'<span class="box" aria-hidden="true"></span>'}${stx(l.st)}<span>${esc(l.c.basis||'')}</span>${l.c.extra?'<span>추가 점검</span>':''}</div><div class="q">${esc(l.c.q)}</div>`;
+ const auto=l.rs.length?l.rs.map(x=>`${x.target?`<div class="tg">${esc(x.target)}</div>`:''}<div class="ev">${l.done&&l.how==='직접'?`<span class="muted">자동 판정 ${SN[x.status]} · </span>`:''}${esc(x.evidence)}</div>${x.todo?`<div class="td">→ ${esc(x.todo)}</div>`:''}`).join(''):guide(l)+`<div class="why">${esc(whyTxt(l.id))}</div>`;
+ return box+auto+recControls(l,'detail')+'</div>'}
+function trailBlock(t){return `<div style="margin-top:8px"><b>${esc(t.unit.name)}</b> <span class="dec">${esc(t.decision.split(' ')[0])}</span><div class="small muted">잃은 매출 ${won(t.unit.lost)} · ROAS ${pct(t.unit.roas_base)} → ${pct(t.unit.roas_now)}</div>${(t.children||[]).slice(0,4).map(k=>`<div class="small" style="display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:6px;margin-top:3px"><span>${esc(k.name)} · 하락 ${pct(k.rate)}</span><span style="text-align:right">${pct(k.share)}</span><span class="bar"><i class="${trail.some(x=>x.unit.id===k.id)||(L.stop&&L.stop.id===k.id)?'on':''}" style="width:${(k.share||0)*100}%"></i></span></div>`).join('')}</div>`}
+const XB='<button class="tbtn xbtn" type="button" data-close>닫기</button>';
+function detail(){const box=$('#detail');
+ if(!sel){box.innerHTML=`<h2>자리를 고르세요</h2><p class="small muted" style="margin:0">회로의 카드 · 관문을 누르면 그 자리 점검이 여기에 열린다. 카드 안 작은 기호 하나가 점검 하나이고, 밑줄이 있으면 체크리스트에서 채운 것이다.</p>`;bindClose();return}
+ if(sel.startsWith('gate:')){const lid=sel.slice(5),l=LANES.find(x=>x.id===lid),gt=gate(lid),[gs]=GST[gt.st];
+  box.innerHTML=`<h2>${l.name} 관문 ${XB}</h2><p style="margin:0 0 6px"><span class="st ${gs}">${ic(gs)}${esc(gt.txt)}</span></p><p class="small"><b>${esc(l.gate)}</b></p><p class="small">${esc(gt.ev||'판정할 데이터가 없다')}</p><p class="small muted">${R_==='D'?"관문은 '어디부터 볼까'를 가르는 자리다. 통과하면 다음 레이어로, 걸리면 이 레이어의 자리부터 본다. 못 봄이면 이 레이어를 원인에서 지울 수 없다.":'위클리 관문은 원인 가설이 이 레이어에 있는지, 근거가 얼마나 센지 보여 준다. 못 봄이면 이 레이어를 원인에서 지울 수 없다.'}</p>`;bindClose();return}
+ const ls=(lamps[sel]||[]).slice().sort((a,b)=>(a.done-b.done)||ORD[a.st]-ORD[b.st]);const st=worst(sel),cv=cover([sel]);
+ const lvl=sel==='M1'?0:sel==='M2'?1:sel==='M3'?2:-1;
+ box.innerHTML=`<h2>${ic(st,16)} ${esc(NAME[sel])} ${XB}</h2><p class="small" style="margin:0 0 4px">${stx(st)} · 점검 ${cv.n}개 중 <b>${cv.seen}개 봄</b> · 체크리스트 <b>${cv.done}/${cv.n} 채움</b>${sel===stopNode?` · <b>${R_==='D'?'원인 자리':'1순위 가설 자리'}</b>`:PATH.includes(sel)&&sel!=='G'?' · 원인 길 위':''}</p>
+ ${(LINKS[sel]||[]).length?`<div class="links"><span class="small muted">맞닿는 곳</span>${LINKS[sel].map(([t,txt])=>`<button class="chipb" type="button" data-jump="${t}">${esc(NAME[t])} — ${esc(txt.split(' — ')[0])}</button>`).join('')}</div>`:''}
+ ${R_==='D'&&lvl>=0&&trail[lvl]?`<h3>원인 자리 찾기 · 이 단계</h3>${trailBlock(trail[lvl])}`:''}
+ ${ls.length?`<h3>체크리스트 <span class="muted small">— 남은 것부터</span></h3>${ls.map(lampCard).join('')}`:'<p class="small muted">이 리듬에는 점검이 없다.</p>'}`;
+ box.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{const t=document.getElementById('n-'+b.dataset.jump);pick(b.dataset.jump,{from:t,keep:true});if(!drawer())t.focus()});
+ bindClose()}
+function bindClose(){const x=$('#detail [data-close]');if(x)x.onclick=()=>{const o=opener;sel=null;pick(null,{});if(o)o.focus()}}
+function traceP(){const box=$('#trace');
+ if(R_==='W'){box.innerHTML=`<h2>원인 가설 · 근거 순</h2>${HYP.map(h=>{const hn=hypNodes(h);return `<div class="hyp ${h.rank===1?'r1':''}"><b>${h.rank}. ${esc(h.name)}</b> <span class="small">근거 <b>${esc(h.strength)}</b></span><div class="small">${esc(disp(h.where))} · ${esc(h.why)}</div><div class="small"><b>→ ${esc(h.todo)}</b></div>${hn.length?`<div class="links">${hn.map(id=>`<button class="chipb" type="button" data-jump="${id}">${esc(SHORT[id])} 보기</button>`).join('')}</div>`:''}</div>`}).join('')||'<p class="muted small">떨어진 숫자가 없다</p>'}`}
+ else if(!trail.length)box.innerHTML='<h2>원인 자리 찾기</h2><p class="muted small">데이터 없음</p>';
+ else box.innerHTML=`<h2>원인 자리 찾기</h2><p class="small muted" style="margin:0">잃은 매출 = 어제 광고비 × (앞 기간 ROAS − 어제 ROAS)</p>${trail.map(trailBlock).join('')}<p class="small" style="margin-top:10px">몰림(한 곳이 절반 이상)이면 내려가고, 퍼짐(대부분 같이 하락)이면 멈춘다.</p>`;
+ box.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{const t=document.getElementById('n-'+b.dataset.jump);pick(b.dataset.jump,{from:t,keep:true});if(!drawer())t.focus()})}
+// ── 탭: 체크리스트 · 할 일 · 빈 곳 · 연동 · 진행 순서
+let flt='left';const OPEN=new Set(),OPENG=new Set();
+const TABS=[['check','체크리스트'],['todo','할 일'],['gap','빈 곳 · 연동'],['flow','진행 순서']];
+function tabs(){
+ $('#tabs').innerHTML=`<div class="tablist" role="tablist" aria-label="아래 내용">${TABS.map(([k,n],i)=>`<button class="tab" role="tab" type="button" id="tab-${k}" aria-controls="p-${k}" aria-selected="${i===0}" tabindex="${i?-1:0}">${n}<span class="n"></span></button>`).join('')}</div>
+ ${TABS.map(([k],i)=>`<div class="tabpanel" role="tabpanel" id="p-${k}" aria-labelledby="tab-${k}" tabindex="-1"${i?' hidden':''}></div>`).join('')}`;
+ const tl=$$('.tab');tl.forEach((t,i)=>{t.onclick=()=>showTab(t.id.slice(4));t.onkeydown=e=>{let j=null;if(e.key==='ArrowRight')j=(i+1)%tl.length;else if(e.key==='ArrowLeft')j=(i-1+tl.length)%tl.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=tl.length-1;if(j!=null){e.preventDefault();showTab(tl[j].id.slice(4));tl[j].focus()}}});
+ panels()}
+function panels(){const c=tally(ALL),done=ALL.filter(l=>l.done).length;
+ const cnt={check:`${done}/${ALL.length}`,todo:ACT.length,gap:c.na+c.skip,flow:''};TABS.forEach(([k])=>{$(`#tab-${k} .n`).textContent=cnt[k]});
+ checkP();todoP();gapP();flowP()}
+function showTab(k){$$('.tab').forEach(t=>{const on=t.id==='tab-'+k;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1});$$('.tabpanel').forEach(p=>p.hidden=p.id!=='p-'+k)}
+function runner(){const l=nextLamp(),n=ALL.length,done=ALL.filter(x=>x.done).length;
+ if(!l){const c=tally(ALL);return `<div class="runner" id="runner"><div class="k" style="font-size:12px;font-weight:800;color:var(--muted)">체크리스트 진행 · ${done}/${n}</div><div class="prog" aria-hidden="true"><i style="width:100%"></i></div><p class="rq" id="run-q" tabindex="-1">체크리스트를 다 채웠다</p><div class="leg">${STS.filter(s=>c[s]).map(s=>`<span>${ic(s)}${SN[s]} ${c[s]}</span>`).join('')}</div><p class="small" style="margin:6px 0 0">이상 · 확인 필요로 채운 점검은 '할 일' 탭에 모였다. 기록은 이 브라우저에 남는다 — 다른 사람과 나누려면 내려받는다.</p><div class="tools"><button class="btn pri" type="button" data-export>기록 내려받기(.md)</button><button class="btn" type="button" data-reset>기록 지우기</button></div></div>`}
+ const sameOk=autoSeen(l)&&l.auto==='ok'?(lamps[l.id]||[]).filter(x=>!x.done&&x.auto==='ok'):[];
+ const why=prio(l)===0?(R_==='D'?'원인 길 위에서 안 본 점검':'1순위 가설 자리에서 안 본 점검'):prio(l)===1?'자동 판정이 이상 · 확인 필요':prio(l)===2?'아직 안 본 점검':'자동 판정 정상 — 맞는지 확인';
+ return `<div class="runner" id="runner"><div class="k" style="font-size:12px;font-weight:800;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px"><span>지금 채울 점검 · ${done}/${n} 채움</span><span>남음 ${n-done}</span></div>
+  <div class="prog" aria-hidden="true"><i style="width:${done/n*100}%"></i></div>
+  <div class="meta"><span>${esc(NAME[l.id])}</span><span>${esc(l.c.basis||'')}</span><span>${esc(why)}</span></div>
+  <p class="rq" id="run-q" tabindex="-1">${esc(l.c.q)}</p>
+  ${autoSeen(l)?`<div class="auto">${stx(l.auto)} 자동 판정 ${l.rs.map(x=>`<div>${x.target?`<span class="muted">${esc(x.target)} · </span>`:''}${esc(x.evidence)}</div>${x.todo?`<div><b>→ ${esc(x.todo)}</b></div>`:''}`).join('')}</div>`:`${stx(l.auto)} <span class="small muted">${l.auto==='na'?'자동 점검이 데이터가 없어 못 봤다':'이번 실행에 없는 점검'} — ${esc(whyTxt(l.id))}</span>${guide(l)}`}
+  ${recControls(l,'run')}
+  <div class="tools"><button class="btn" type="button" data-later="${l.g}">나중에</button>${sameOk.length>1?`<button class="btn" type="button" data-bulk="${l.id}">${esc(NAME[l.id])} 자동 정상 ${sameOk.length}개 한꺼번에 확인</button>`:''}<button class="btn" type="button" data-open="${l.id}:${l.i}">회로에서 이 자리 열기</button><button class="btn" type="button" data-export>기록 내려받기(.md)</button></div>
+  ${SAVED?'':'<p class="small muted" style="margin:6px 0 0">이 브라우저는 기록을 저장하지 못한다. 창을 닫기 전에 내려받는다.</p>'}</div>`}
+function checkP(){const c=tally(ALL),left=ALL.filter(l=>!l.done).length;
+ const F=[['left','남은 것',left],['done','채운 것',ALL.length-left],['all','전체',ALL.length]].concat(STS.filter(s=>c[s]).map(s=>[s,SN[s],c[s]]));
+ const list=ALL.filter(l=>flt==='all'||(flt==='left'&&!l.done)||(flt==='done'&&l.done)||l.st===flt);
+ const groups=ORDER.map(k=>[k,list.filter(l=>l.id===k)]).filter(([,ls])=>ls.length);
+ $('#p-check').innerHTML=`${runner()}
+ <h2>점검반 — 체크리스트 <span class="muted small">${CAT.filter(x=>x.r===R_).length}개(${R_==='D'?'데일리':'위클리'}). 본 점검은 자동 판정을 확인하고, 안 본 점검은 직접 보고 채운다.</span></h2>
+ <div class="filters" role="group" aria-label="체크리스트 거르기">${F.map(([k,n,cnt])=>`<button class="fbtn" type="button" data-f="${k}" aria-pressed="${flt===k}">${STS.includes(k)?ic(k):''}${n} ${cnt}</button>`).join('')}</div>
+ ${groups.map(([k,ls])=>{const cv=cover([k]);const open=STS.includes(flt)||OPENG.has(k);return `<details class="grp" data-g="${k}"${open?' open':''}><summary><span class="box ${cv.done===cv.n?'on':''}" aria-hidden="true">${cv.done===cv.n?'✓':''}</span><h3>${esc(NAME[k])}</h3><span class="muted small">${cv.done}/${cv.n} 채움 · ${esc(tallyTxt(tally(ls)))}</span></summary>${ls.map(l=>ckRow(l)).join('')}</details>`}).join('')||'<p class="small muted">이 조건에 맞는 점검이 없다.</p>'}`}
+function todoP(){const PG=pgap();$('#p-todo').innerHTML=`<h2 class="sr">할 일</h2><div class="issues">${ACT.map(o=>o.items.map(x=>card(x)).join('')).join('')||'<p class="muted">할 일이 없다</p>'}</div>
+ ${PG.length?`<h3 id="todo-gap" tabindex="-1" style="margin-top:16px">결론 전에 직접 볼 것 · ${R_==='D'?'원인 길':'1순위 가설 자리'}에서 안 본 점검 ${PG.length}개</h3><p class="small muted" style="margin:0">${R_==='D'?'원인 자리까지 내려온 길':'1순위 가설 자리'} 위에서 이번 실행이 보지 못한 점검이다. 여기서 이상이 나오면 결론이 바뀔 수 있다.</p>${PG.map(l=>ckRow(l,true)).join('')}`:''}`}
+function ckRow(l,showWhere){const x=l.rs[0];return `<details class="ck ${l.done?'done':''}" data-k="${l.g}"${OPEN.has(l.key)?' open':''}><summary><span class="box ${l.done?'on':''}" role="img" aria-label="${l.done?'채움':'남음'}">${l.done?'✓':''}</span>${stx(l.st)}<span class="qx">${showWhere?`<span class="muted small">${esc(NAME[l.id])} · </span>`:''}${esc(l.c.q)}${l.c.extra?' <span class="muted small">(추가 점검)</span>':''}${x&&x.target?` <span class="muted small">${esc(x.target)}</span>`:''}${l.done?` <span class="muted small">· ${esc(l.how==='확인'?'자동 판정 확인':'직접 기록')}</span>`:''}</span><span class="nd">${esc(l.c.basis||'')}</span></summary><div class="body">${l.rs.length?l.rs.map(x=>`<p>${l.how==='직접'?`<span class="muted">자동 판정 ${SN[x.status]} · </span>`:''}${esc(x.evidence)}</p>${x.todo?`<p><b>→ ${esc(x.todo)}</b></p>`:''}`).join(''):`${l.c.where?`<p><b>보는 곳</b> ${esc(l.c.where)}</p>`:''}${l.c.bad?`<p><b>이상 신호</b> ${esc(l.c.bad)}</p>`:''}${l.c.todo?`<p><b>→ ${esc(l.c.todo)}</b></p>`:''}<p class="muted">${esc(whyTxt(l.id))}</p>`}${recControls(l,'row')}<p><button class="lnk" type="button" data-open="${l.id}:${l.i}">회로에서 이 자리 열기</button></p></div></details>`}
+function gapP(){const cnt=s=>ALL.filter(l=>(l.st==='skip'||l.st==='na')&&s.unlocks.includes(l.id)).length;
+ const layers=[['G','신호판',['G']]].concat(LANES.map(l=>[l.id,l.name,l.nodes.map(n=>n[0]).concat(l.rail?[l.rail[0]]:[])]));
+ $('#p-gap').innerHTML=`<h2>빈 곳 <span class="muted small">레이어마다 본 것과 비어 있는 것(체크리스트에서 직접 채운 것 포함)</span></h2>
+ ${layers.map(([k,n,ids])=>{const cv=cover(ids);return `<div class="lay"><b>${n}</b>${gaugeHtml(cv.t)}<span class="small">${cv.n}개 중 ${cv.seen}개 봄 <span class="muted">(${tallyTxt(cv.t)})</span></span></div>`}).join('')}
+ <p class="small muted">'못 봄'은 점검을 돌렸지만 데이터가 없었다는 뜻, '안 봄'은 이번 실행에 그 점검이 아예 없었다는 뜻이다. 둘 다 그 자리를 원인에서 지웠다는 뜻이 아니다.</p>
+ <h2 style="margin-top:14px">데이터 연동 <span class="muted small">비어 있는 램프를 자동으로 켜려면</span></h2>
+ <table class="stack"><thead><tr><th>상태</th><th>데이터</th><th>지금 비어 있는 자리의 점검</th><th>켜지는 자리</th><th>연결 방법</th></tr></thead><tbody>${R.sources.slice().sort((a,b)=>a.on-b.on||cnt(b)-cnt(a)).map(x=>`<tr><td data-k="상태">${x.on?`<span class="st ok">${ic('ok')}연결됨</span>`:`<span class="st na">${ic('na')}없음</span>`}</td><td data-k="데이터"><b>${esc(x.name)}</b></td><td data-k="지금 비어 있는 자리의 점검">${cnt(x)}개</td><td data-k="켜지는 자리">${x.unlocks.map(u=>`<span class="chip">${esc(NAME[u]||u)}</span>`).join('')}</td><td data-k="연결 방법">${esc(x.how)}</td></tr>`).join('')}</tbody></table>`}
+// ── 진행 순서: roas-check 스킬이 점검을 진행하는 카드 순서(문구 정본은 skill/roas-check/SKILL.md, 화면용으로 줄임)
+const facs=f=>f?Object.entries(f).filter(([,v])=>v&&v.effect!=null).sort((x,y)=>x[1].effect-y[1].effect):[];
+const FAC=facs(R_==='D'?(R.signal||{}).factors:R.factors),TOPF=FAC[0]&&FAC[0][1].effect<0?FAC[0][0]:null;
+const DROP=R_==='D'?find('G','정말 떨어졌나'):null,notSure=()=>!!DROP&&DROP.status!=='bad';
+const dec=t=>String(t.decision||'').split(' ')[0];
+const TRN=trail.map((t,i)=>LV[t.level]||['M1','M2','M3','M4'][i]).filter(Boolean);
+const FLOW={
+ D:{name:'데일리',lead:'갑자기 떨어졌을 때. 한 번에 한 카드, 질문은 3개까지. 볼 수 없는 것은 못 봄 · 묻지 않은 것은 안 봄으로 두고 다음 카드로 간다.',shape:[['0'],['1'],['2'],['3','4','5'],['6']],
+  cards:{
+   '0':{t:'시작',q:'갑자기인가, 서서히인가?',
+    ask:['광고주 · 점검할 날(기본 어제) · 광고 목표가 구매(판매)인가','어제 · 오늘 갑자기 떨어졌나, 몇 주에 걸쳐 서서히인가(모르면 데일리)','볼 수 있는 것: 광고 관리자 · 이벤트 관리자 · 자사몰 관리자 · 광고에 걸린 사이트 주소 · 행사 일정'],
+    judge:['목표가 구매가 아니면 ROAS 대신 결과당 비용을 같은 순서로 본다(판정 표는 구매 기준이라 근거가 약해질 수 있다)','처음 말에 나온 것은 다시 묻지 않는다'],
+    br:[{c:'갑자기 떨어짐 · 모름',to:['1'],on:()=>true},{c:'몇 주에 걸쳐 서서히',to:['W1']}]},
+   '1':{t:'신호판',q:'정말 떨어졌나, 어느 숫자가 끌어내렸나?',nodes:['G'],gates:['S','J'],
+    ask:['광고 관리자 › 캠페인 탭, 기간 어제 · 비교 앞 14일의 계정 합계(지출 · 노출 · 링크 클릭 · 랜딩 페이지 조회 · 장바구니 · 결제 시작 · 구매 · 구매 전환값 등). 일별 내보내기 파일이 있으면 먼저 받는다','자사몰 관리자의 어제 매출 · 주문과 앞 14일 하루 평균','같은 업종 다른 광고주도 어제 떨어졌다는 얘기','다음 차례: 그저께는 평소였나, 오늘 다시 보면 어제 숫자가 그대로인가'],
+    judge:['ROAS = 구매 전환값 ÷ 지출. 노출 단가 · 클릭률 · 구매 전환율 · 객단가로 나눠 가장 크게 끌어내린 숫자를 고른다','어제가 앞 기간보다 낮고, 그저께는 평소, 오늘 다시 봐도 비슷 → 이상','구매가 하루 20건 미만이면 3~7일을 묶어 비교하고, 그래도 낮을 때만 이상','어제 숫자가 아직 오르는 중 → 확인 필요(전환이 늦게 잡히는 중). 그저께부터 낮으면 계속 가되 시작일을 적는다'],
+    br:[{c:'어제 숫자가 아직 오르는 중 · 구매가 하루 20건 미만',to:['2'],n:'확인 필요 — 전환이 늦게 잡히는 중이거나 하루 비교는 잡음일 수 있다(3~7일을 묶어 비교). 멈추지 않고 다음 카드로',on:notSure},
+     {c:'그저께부터 낮음',to:['2'],n:'계속 가되 시작일을 적는다'},
+     {c:'노출 단가 ↑ · 업종도 같이 떨어짐',to:['5'],n:'시장 — 시즌 · 경쟁 상황을 앞당김',on:()=>TOPF==='cpm'&&gate('S').st==='hit'},
+     {c:'노출 단가 ↑ · 업종은 그대로',to:['2'],n:'광고세트(타겟). 클릭률도 ↓면 소재부터',on:()=>TOPF==='cpm'&&gate('S').st==='pass'},
+     {c:'클릭률 ↓',to:['2'],n:'광고 · 소구점',on:()=>TOPF==='ctr'},
+     {c:'구매 전환율 ↓ · 클릭 → 랜딩, 랜딩 → 장바구니에서 끊김',to:['2','3'],n:'어느 주소인지 좁힌 뒤 자사 웹 상태',on:()=>TOPF==='cvr'},
+     {c:'구매 전환율 ↓ · 결제 시작 → 구매만 끊김',to:['5','3'],n:'자사몰 주문이 평소면 측정(카드 5 앞당김), 주문도 줄었으면 결제 오류(카드 3)',on:()=>TOPF==='cvr'},
+     {c:'객단가 ↓',to:[],n:'자사 · 상품',row:'J3',on:()=>TOPF==='aov'},
+     {c:'자사몰 전체도 메타만큼 떨어짐',to:['3'],n:'자사 원인 가능성 — 카드 3 앞당김',on:()=>gate('J').st==='hit'},
+     {c:'메타만 크게 떨어짐',to:['2'],on:()=>gate('J').st==='pass'},
+     {c:'자사몰 주문은 그대로인데 메타 구매만 크게 줄어듦',to:['5'],n:'측정 의심'},
+     {c:'지출이 앞 기간 하루 평균보다 20% 넘게 늘었는데 ROAS 하락',to:['4'],n:'예산 증액 쪽도 본다(기록)'}]},
+   '2':{t:'원인 자리 찾기',q:'몰렸나, 퍼졌나?',nodes:TRN,
+    ask:['캠페인별 어제와 앞 14일의 지출 · 구매 전환값','몰린 캠페인이 나오면 그 캠페인의 광고세트별 같은 숫자','일별 파일을 이미 받았으면 묻지 않고 파일로 계산'],
+    judge:['잃은 매출 = 어제 지출 × (앞 기간 ROAS − 어제 ROAS)','퍼짐을 먼저 본다: 어제 지출 기준 70% 이상의 하위 단위가 위 단위 하락률의 절반 이상으로 같이 떨어짐','몰림: 한 단위가 잃은 매출의 절반 이상','근거는 지출 몫과 잃은 매출 몫을 나란히 쓴다'],
+    br:[{c:'몰림',to:['2'],n:'그 단위로 내려가 같은 계산(캠페인 → 광고세트 → 광고)',on:()=>trail.some(t=>dec(t)==='몰림')},
+     {c:'퍼짐',to:['3','4','5'],n:'지금 단위가 원인 자리. 더 내려가지 않는다',on:()=>trail.length>1&&dec(trail[trail.length-1])==='퍼짐'},
+     {c:'계정에서 바로 퍼짐',to:['3','4','5'],n:'계정 전체에 걸리는 것(시장 · 측정 · 사이트 전체 · 계정 설정) 중 카드 1의 숫자가 가리키는 쪽부터',on:()=>trail.length===1&&dec(trail[0])==='퍼짐'},
+     {c:'둘 다 아님',to:[],n:'보류 — 몫이 큰 2~3개를 함께 본다',on:()=>trail.some(t=>dec(t)==='보류')},
+     {c:'같은 사이트 주소로 보내는 광고만 떨어짐',to:[],n:'원인 자리에 자사 › 그 주소도 함께 적는다'}]},
+   '3':{t:'웹 상태',q:'손님이 막힘 없이 살 수 있나?',nodes:['J1','J2','J3','J4','J5','J6'],
+    ask:['원인 자리 광고에 걸린 주소를 휴대폰으로 열기 — 잘 열리나, 종료 · 품절 표시나 엉뚱한 페이지로 가지 않나, utm 꼬리표가 남나','인스타그램 앱 안에서 열어도 같나, 느리지 않나','색상 · 사이즈를 골라 장바구니에 담고 결제 직전 화면까지 되나(실제 결제는 하지 않는다)'],
+    judge:['끝난 행사 · 품절 · 열리지 않음 · 메인으로 튕김 → 이상, 즉시','utm 꼬리표가 사라짐 · 소재 문구의 혜택이 페이지에 없음 → 이상, 당일','장바구니 · 결제 비율이 낮은데 직접 해 보면 됨 → 같은 원인(예: 끝난 행사 페이지)의 결과인지 먼저 따진다'],
+    br:[{c:'다음 카드',to:['4']}]},
+   '4':{t:'매체 설정',q:'세팅이 의도대로인가?',nodes:['M1','M2','M3','M4'],
+    ask:['원인 자리(캠페인 · 광고세트)의 켜짐 · 꺼짐과 일정이 행사 일정과 맞나, 반려 · 게재 제한 표시','기록(변경 내역)에 어제 바뀐 것 — 예산 · 입찰 · 타겟 · 최적화 이벤트 · 기여 설정 · 연결 주소','계정 상태 · 결제 · 지출 한도'],
+    judge:['끝난 행사가 켜져 있음 · 시작한 행사가 꺼져 있음 · 결제 실패 · 계정 비활성 → 이상, 즉시','어제 바뀐 설정 → 확인 필요(누가 · 언제)','그 단위의 잃은 매출 몫이 20% 미만이거나 바뀌지 않은 캠페인도 같은 폭 → 확인 필요(원인 아님)','학습이 다시 시작됨 → 확인 필요, 추가 변경을 멈춘다'],
+    br:[{c:'다음 카드',to:['5']}]},
+   '5':{t:'측정 · 시장',q:'잡히나, 다 같이 겪는 일인가?',nodes:['JT','S1','S2','S3','S4','S5'],
+    ask:['이벤트 관리자 › 데이터 세트 › 개요: 어제 구매 이벤트 수 · 진단 알림(권한 없으면 넘어감)','사이트에 최근 바뀐 것 — 주문 완료 · 결제 페이지 개편, 태그 · 결제 수단 변경, 사이트 이전(개발팀 공지)','어제가 공휴일 · 쇼핑 대목 · 행사 끝난 다음 날이었나, 메타 장애 소식, 경쟁 브랜드의 큰 할인 광고(메타 광고 라이브러리)'],
+    judge:['측정: 메타 구매 ÷ 자사몰 주문이 평소보다 크게 낮고, 결제 시작까지는 평소인데 구매 ÷ 결제 시작만 무너짐 → 이상, 즉시(측정 끊김). 이때는 예산 · 소재 · 켜기 · 끄기를 건드리지 않는다','시장: 업종도 같이 떨어짐 · 노출 단가가 가장 큰 몫 · 계정 전체에 퍼짐 → 시장 › 경쟁 상황(대목 · 세일이 겹치면 시즌 상황도)','시즌 상황: 행사 끝난 다음 날 → 확인 필요, 행사 없는 기간끼리 다시 비교'],
+    br:[{c:'다음 카드',to:['6']}]},
+   '6':{t:'마무리',q:'무엇을 하고 누구와 나눌까?',out:true,
+    ask:['더 받는 것 없음 — 받은 답으로 정리한다'],
+    judge:['원인 자리와 근거 한두 줄(계산식 · 비교 기준 포함)','할 일 — 급함 순서로 3개까지, 같은 원인은 한 줄로','최종 진행표 10줄 이하 · 못 봄 · 공유 메시지(팀 · 광고주) · 피드백'],
+    br:[]}}},
+ W:{name:'위클리',lead:"몇 주째 서서히 떨어질 때. 카드 0(시작)에서 '몇 주에 걸쳐 서서히'라고 하면 여기로 온다.",shape:[['W1'],['W2'],['W3']],
+  cards:{
+   'W1':{t:'몇 주째, 어느 숫자가',q:'몇 주째인가, 어느 숫자가 끌어내렸나?',nodes:['G'],
+    ask:['광고 관리자: 최근 5주를 주 단위로(분석 데이터 › 시간 › 주) 계정 합계 — 지출 · 노출 · 도달 · 링크 클릭 · 구매 · 구매 전환값. 주별 내보내기(광고 단위 · 광고세트 단위)가 있으면 먼저 받는다','그 사이 급한 사고(품절 · 꺼짐 · 사이트 장애)가 있었던 날','자사몰 관리자의 주별 전체 매출(같은 5주). 다음 차례에 같은 업종도 요즘 떨어졌는지'],
+    judge:['주별 ROAS가 2주 이상 같은 방향으로 내려가면 흐름 하락(2%보다 작은 흔들림은 세지 않음)','사고 난 날이 든 주를 빼도 하락이 남는지 본다','네 숫자는 이번 주 vs 앞 4주 합계로 변화를 내고 가장 크게 끌어내린 숫자를 고른다','자사몰 전체 매출에는 메타 매출도 들어 있다 — 메타가 줄어든 만큼만 줄었으면 시장 근거가 아니다'],
+    br:[{c:'업종도 같이 · 자사몰 전체도 메타만큼 떨어짐',to:['W2'],n:'시장 묶음(수요 상황: 검색량 · 시즌 상황: 작년 같은 때)을 먼저 묻는다',on:()=>{const c=find('S4','같은 업종');return !!c&&c.status==='bad'}},
+     {c:'그 밖',to:['W2'],n:'가장 크게 끌어내린 숫자의 묶음',on:()=>{const c=find('S4','같은 업종');return !!TOPF&&!(c&&c.status==='bad')}}]},
+   'W2':{t:'원인 읽기',q:'그 숫자의 자리 묶음에서 무엇이 바뀌었나?',nodes:R_==='W'?PATH.filter(k=>k!=='G'):[],bundles:true,
+    ask:['가장 크게 끌어내린 숫자의 묶음 하나만 먼저 묻는다(아래 묶음, 질문 3개 이하)','가설이 서면 한 차례: 그 사이 예산 · 입찰 · 타겟 · 가격 · 혜택을 바꾼 게 있나'],
+    judge:['빈도만 높다고 닳은 것이 아니다 — 빈도가 오르면서 클릭률이 2주 넘게 함께 떨어질 때 소재가 닳았다로 읽는다','같은 소재를 쓰는 광고세트들이 같이 떨어진 퍼짐은 시장이 아니라 소재 · 소구점 쪽 근거','근거 강함 = 서로 다른 근거 3개 이상 · 반대 없음, 보통 = 2개, 약함 = 1개이거나 반대 근거 있음'],
+    br:[{c:'두 번째로 큰 숫자의 변화가 10% 넘음',to:['W2'],n:'한 묶음 더 묻는다',on:()=>!!FAC[1]&&FAC[1][1].effect<0&&Math.abs(FAC[1][1].change)>0.1},
+     {c:'10% 이하',to:['W3'],n:'첫 가설의 결과로 읽을 수 있는지 적는다(예: 소재가 닳으면 노출 단가도 조금 오른다)',on:()=>!!HYP.length&&!(FAC[1]&&FAC[1][1].effect<0&&Math.abs(FAC[1][1].change)>0.1)}]},
+   'W3':{t:'마무리',q:'어느 쪽으로 바꿀까?',out:true,
+    ask:['더 받는 것 없음 — 받은 답으로 정리한다'],
+    judge:["원인 자리 대신 가설 순위(강함 · 보통 · 약함과 근거)",'할 일은 바꿀 방향으로 쓰고, 급함은 이번 주 협의 · 다음 기획 · 관찰로','진행표 머리: 원인 자리(가설 1순위)'],
+    br:[]}}}};
+// 위클리 원인 읽기 묶음: 숫자 → 묶음 질문 → 이력판의 자리
+const BUND=[['ctr','클릭률 ↓','지출 상위 소재 3개의 주별 클릭률 · 빈도 / 같은 소구점 소재만 오래 돌았나 / 최근 새 소구점 소재가 있었나',['M4','MX']],
+ ['cpm','노출 단가 ↑','광고세트별 주별 도달 · 빈도 · 지출 / 같은 업종도 단가가 올랐나 / 경쟁사가 큰 행사를 하나(광고 라이브러리)',['M3','S3']],
+ ['cvr','구매 전환율 ↓','단계별 비율(랜딩 조회 → 장바구니 → 결제 시작 → 구매)의 주별 추이 / 혜택 · 가격이 바뀌었나 / 소재와 랜딩 첫 화면이 같은 이야기를 하나',['J2','J4','J5']],
+ ['aov','객단가 ↓','상품별 매출 비중이 싼 상품으로 옮겨 갔나 / 세트 · 고가 상품 노출이 줄었나',['J3']],
+ ['','(공통)','효율 낮은 캠페인 · 광고세트로 지출 비중이 옮겨 갔나',['M2','M3']]];
+const CNAME=k=>'카드 '+k;
+// 이번 실행이 이 카드에서 남긴 자취: 상태 기호 + 글자(색에만 기대지 않는다)
+function cardTrace(rk,k){const c=FLOW[rk].cards[k];if(rk!==R_)return null;
+ if(k==='0')return {st:null,tx:`${R_==='D'?'데일리':'위클리'}로 진행`,pass:true};
+ if(c.out)return {st:null,tx:`결과물 = 이 화면 · 할 일 ${ACT.length}개`,pass:true};
+ if(k==='2'){if(L&&L.stop)return {st:'bad',tx:`원인 자리: ${L.stop.name}`,stop:true,path:true,pass:true};return trail.length?{st:'warn',tx:'원인 자리를 좁히지 못함(보류)',pass:true,path:true}:{st:'na',tx:'못 봄 — 캠페인별 숫자 없음'}}
+ if(k==='W2'){if(HYP[0])return {st:HYP[0].strength==='강함'?'bad':'warn',tx:`1순위 가설: ${HYP[0].name} · 근거 ${HYP[0].strength}`,stop:true,path:true,pass:true};return {st:'na',tx:'못 봄 — 가설을 세울 숫자 없음'}}
+ const ids=c.nodes||[],cv=cover(ids);
+ if(!cv.n)return {st:'skip',tx:'안 봄 — 이 리듬에 점검 없음'};
+ const has=!!stopNode&&ids.includes(stopNode),path=ids.some(x=>PATH.includes(x));
+ if(!cv.seen){const s=cv.t.na?'na':'skip';return {st:s,tx:`${SN[s]} — 점검 ${cv.n}개 중 본 것 없음`,has,path}}
+ const s=['bad','warn','ok'].find(x=>cv.t[x]);return {st:s,tx:`지나감 · ${cv.n}개 중 ${cv.seen}개 봄${cv.t.bad?` · 이상 ${cv.t.bad}`:''}${cv.t.warn?` · 확인 필요 ${cv.t.warn}`:''}`,has,path,pass:true}}
+const AR='<svg class="far" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function fmap(rk){const F=FLOW[rk];
+ const box=k=>{const c=F.cards[k],tr=cardTrace(rk,k);
+  return `<button class="fbx ${tr?(tr.stop?'stop':'')+(tr.path?' path':'')+(tr.pass?'':' unseen'):''}" type="button" data-fcard="${rk}-${k}" data-fnav tabindex="-1" aria-label="${esc(CNAME(k))} ${esc(c.t)}. ${esc(c.q)}${tr?' 이번 실행: '+esc(tr.tx)+'.':''}${tr&&tr.path&&!tr.stop?' 원인 길 위.':''}"><span class="no">${esc(CNAME(k))}</span><span class="tt">${esc(c.t)}</span>${tr?`<span class="trc">${tr.st?`<span class="st ${tr.st}">${ic(tr.st)}</span>`:''}<span>${esc(tr.tx)}</span></span>${tr.stop?`<span class="stoptag">${R_==='D'?'원인 자리':'1순위 가설'}</span>`:tr.has?`<span class="pathtag">${R_==='D'?'원인 자리':'가설 자리'} 점검 있음</span>`:''}`:`<span class="trc muted">${esc(c.q)}</span>`}</button>`};
+ return `<div class="fmap" role="group" aria-label="${F.name} 진행 순서 그림. 화살표로 카드 사이를 옮기고 Enter로 카드 설명을 연다">${F.shape.map(col=>col.length>1?`<div class="ffork"><span class="fk small muted">원인 자리를 따라 필요한 것부터(앞당길 수 있음)</span>${col.map(box).join('')}</div>`:box(col[0])).join(AR)}</div>`}
+function toBtn(rk,t){const rk2=/^W/.test(t)?'W':'D';return `<button class="chipb" type="button" data-fcard="${rk2}-${t}">${esc(CNAME(t))} ${esc(FLOW[rk2].cards[t].t)}</button>`}
+function rowBtn(id,live){const lab=id.startsWith('gate:')?LANES.find(l=>l.id===id.slice(5)).name+' 관문':SHORT[id];
+ if(!live)return `<button class="chipb" type="button" data-row="${id}">${esc(lab)}</button>`;
+ if(id.startsWith('gate:')){const gt=gate(id.slice(5)),[gs]=GST[gt.st];return `<button class="chipb" type="button" data-row="${id}">${ic(gs)} ${esc(lab)} · ${esc(gt.txt)}</button>`}
+ const st=worst(id);return `<button class="chipb ${id===stopNode?'stopc':''}" type="button" data-row="${id}" aria-label="${esc(nodeLabel(id))} 이력판 줄로 가기">${ic(st)} ${esc(lab)} <span class="muted">${SN[st]}</span>${id===stopNode?` <b>· ${R_==='D'?'원인 자리':'1순위 가설'}</b>`:''}</button>`}
+function fcard(rk,k){const c=FLOW[rk].cards[k],live=rk===R_,tr=cardTrace(rk,k);
+ const nodes=(c.nodes||[]).concat((c.gates||[]).map(g=>'gate:'+g));
+ let run='';
+ if(live){
+  if(k==='1'&&R.signal){const s=R.signal,f=TOPF&&s.factors[TOPF];run=`어제 ROAS ${pct(s.roas_now)} · 앞 ${s.base_days}일 ${pct(s.roas_base)}${f?` — ${FN[TOPF]} ${chg(f.change)}가 가장 크게 끌어내림`:''}${DROP?` · 정말 떨어졌나: ${SN[DROP.status]}`:''}`}
+  if(k==='2'&&trail.length)run=trail.map(t=>`${t.unit.name} ${dec(t)}`).join(' → ')+(L&&L.stop?' → 원인 자리(더 내려가지 않음)':'');
+  if(k==='W1'&&TOPF){const f=R.factors[TOPF];run=`가장 크게 끌어내린 숫자: ${FN[TOPF]} ${chg(f.change)}${FAC[1]&&FAC[1][1].effect<0?` · 다음: ${FN[FAC[1][0]]} ${chg(FAC[1][1].change)}`:''}`}
+  if(k==='W2'&&HYP.length)run=HYP.map(h=>`${h.rank}. ${h.name}(${h.strength})`).join(' · ');}
+ const lst=xs=>`<ul>${xs.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+ const bund=c.bundles?`<div class="fbund">${BUND.map(([f,nm,qs,ids])=>{const top=live&&f&&f===TOPF,hy=live&&ids.includes(stopNode);return `<div class="fb ${top?'on':''}"><b>${esc(nm)}</b>${top?' <span class="tag">가장 크게 끌어내린 숫자</span>':''}${hy?' <span class="tag">1순위 가설 자리</span>':''}<div class="small">${esc(qs)}</div><div class="links">${ids.map(i=>rowBtn(i,live)).join('')}</div></div>`}).join('')}</div>`:'';
+ const brs=c.br.length?`<ul class="fbr">${c.br.map(b=>{const on=live&&b.on&&b.on();return `<li class="${on?'on':''}">${on?'<span class="tag">이번 실행</span> ':''}<span class="cnd">${esc(b.c)}</span> <span class="to">→ ${b.to.map(t=>toBtn(rk,t)).join(' ')}${b.row?rowBtn(b.row,live):''}</span>${b.n?`<span class="small muted">${esc(b.n)}</span>`:''}</li>`}).join('')}</ul>`:`<div class="links"><button class="chipb" type="button" data-tabgo="todo">할 일 탭 보기</button><button class="chipb" type="button" data-tabgo="check">체크리스트 탭 보기</button></div>`;
+ return `<section class="fc ${tr?(tr.stop?'stop':'')+(tr.path?' path':'')+(tr.pass?'':' unseen'):''}" id="fc-${rk}-${k}" aria-labelledby="fh-${rk}-${k}">
+  <h3 id="fh-${rk}-${k}" tabindex="-1"><span class="fno">${esc(CNAME(k))}</span>${esc(c.t)}${tr&&tr.st?` <span class="st ${tr.st}">${ic(tr.st)}${SN[tr.st]}</span>`:''}${tr&&tr.stop?`<span class="stoptag">${R_==='D'?'원인 자리':'1순위 가설'}</span>`:''}${tr&&tr.has&&!tr.stop?`<span class="pathtag">${R_==='D'?'원인 자리':'가설 자리'} 점검 있음</span>`:tr&&tr.path&&!tr.stop?'<span class="pathtag">원인 길</span>':''}</h3>
+  <p class="fq"><span class="muted small">묻는 것</span> ${esc(c.q)}</p>
+  ${tr?`<p class="ftr small"><b>이번 실행</b> ${esc(tr.tx)}${run?` · ${esc(run)}`:''}</p>`:''}
+  ${nodes.length?`<div class="links"><span class="small muted">이력판 줄</span>${nodes.map(i=>rowBtn(i,live)).join('')}</div>`:''}
+  <div class="fgrid"><details class="fsec"${FOLD()?'':' open'}><summary><h4>${c.out?'정리할 것':'사용자에게 받는 것 · 보는 곳'}</h4></summary>${lst(c.ask)}${bund}</details><details class="fsec"${FOLD()?'':' open'}><summary><h4>${c.out?'결과물':'판정'}</h4></summary>${lst(c.judge)}</details><div><h4>다음 카드로</h4>${brs}</div></div></section>`}
+function fcards(rk){const F=FLOW[rk];return F.shape.map(col=>col.length>1?`<div class="ffk"><p class="small muted" style="margin:0 0 6px">${col.map(CNAME).join(' · ')} — 원인 자리가 나오면 그 자리를 이 셋에서 본다. 카드 1의 숫자가 가리키면 앞당긴다.</p>${col.map(k=>fcard(rk,k)).join('')}</div>`:fcard(rk,col[0])).join('')}
+let FOTHER=false;const FOLD=()=>innerWidth<760;
+function flowP(){const oth=R_==='D'?'W':'D',F=FLOW[R_],O=FLOW[oth];
+ $('#p-flow').innerHTML=`<h2>진행 순서 — ${F.name} <span class="muted small">roas-check 스킬이 대화로 점검을 진행하는 순서. ${esc(F.lead)}</span></h2>
+ <div class="legend"><span><span class="st ok">${ic('ok')}</span>지나감(본 점검 있음) — 기호는 그 카드 자리의 가장 나쁜 상태</span><span><span class="st na">${ic('na')}</span>못 봄</span><span><span class="st skip">${ic('skip')}</span>안 봄</span><span><i class="pathk"></i>원인 길</span><span><i class="stopk"></i>${R_==='D'?'원인 자리':'1순위 가설'}</span><span>점선 테두리 = 이번 실행이 지나지 않은 카드</span></div>
+ ${fmap(R_)}<div class="fcards">${fcards(R_)}</div>
+ <details class="fother"${FOTHER?' open':''}><summary>${O.name} 진행 순서도 보기 — ${O.shape.flat().map(CNAME).join(' → ')}</summary><p class="small muted">이번 화면은 ${F.name} 실행이라 ${O.name} 카드에는 실행 자취를 표시하지 않는다.</p>${fmap(oth)}<div class="fcards">${fcards(oth)}</div></details>`;
+ $$('#p-flow .fmap').forEach(m=>{const b=m.querySelector('[data-fnav]');if(b)b.tabIndex=0})}
+function goRow(id,from){const gid=id.startsWith('gate:');const t=document.getElementById(gid?'g-'+id.slice(5):'n-'+id);if(!t)return;
+ pick(id,{from:t,keep:true});const tr=t.closest('tr');if(tr){tr.classList.add('flash');setTimeout(()=>tr.classList.remove('flash'),1600)}
+ if(!drawer()){t.scrollIntoView({block:'center'});t.focus()}else{opener=from||opener}
+ $('#live').textContent=`이력판: ${gid?LANES.find(l=>l.id===id.slice(5)).name+' 관문':NAME[id]} 줄을 열었다`}
+function goCard(key){const [rk]=key.split('-');if(rk!==R_){const d=$('#p-flow .fother');if(d&&!d.open){d.open=true;FOTHER=true}}
+ const h=document.getElementById('fh-'+key);if(h){h.scrollIntoView({block:'start'});h.focus()}}
+function fnav(e){const t=e.target.closest('[data-fnav]');if(!t)return;const all=Array.from(t.closest('.fmap').querySelectorAll('[data-fnav]')),i=all.indexOf(t);let nx=null;
+ if(e.key==='ArrowRight'||e.key==='ArrowDown')nx=all[i+1];else if(e.key==='ArrowLeft'||e.key==='ArrowUp')nx=all[i-1];else if(e.key==='Home')nx=all[0];else if(e.key==='End')nx=all[all.length-1];else return;
+ e.preventDefault();if(nx){all.forEach(x=>x.tabIndex=-1);nx.tabIndex=0;nx.focus()}}
+// ── 기록 내려받기
+function exportMd(){const c=tally(ALL),done=ALL.filter(l=>l.done).length;
+ let md=`# ROAS 점검 기록 — ${R.advertiser} · ${R.date} · ${R_==='D'?'데일리':'위클리'}\n\n체크리스트 ${done}/${ALL.length} 채움 · ${tallyTxt(c)}\n\n`;
+ ORDER.forEach(k=>{const ls=lamps[k]||[];if(!ls.length)return;md+=`## ${NAME[k]}\n`;ls.forEach(l=>{md+=`- [${l.done?'x':' '}] ${SN[l.st]} · ${l.c.q}${l.done?` — ${l.how==='확인'?'자동 판정 확인':'직접 기록'}`:' — 남음'}${l.rs[0]?` · 근거: ${l.rs.map(x=>x.evidence).join(' / ')}`:''}${l.memo?` · 메모: ${l.memo}`:''}\n`});md+='\n'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'}));a.download=`ROAS_점검기록_${R.advertiser}_${R.date}_${R_==='D'?'데일리':'위클리'}.md`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+// ── 다시 그리기(기록 뒤): 포커스를 이어 준다
+function refresh(focus){applyRec();ACT=actions();band();grid();detail();panels();
+ if(focus){const el=typeof focus==='string'?$(focus):focus;if(el)el.focus({preventScroll:false})}}
+function bindGo(root){$$(root+' [data-go]').forEach(b=>b.onclick=()=>{const k=b.dataset.go;
+ if(k==='check'){showTab('check');const t=$('#run-q');t.scrollIntoView({block:'center'});t.focus();return}
+ showTab('todo');const t=k==='todo-gap'?$('#todo-gap'):$('#tab-todo');t.scrollIntoView({block:'start'});t.focus()})}
+document.addEventListener('click',e=>{
+ const r=e.target.closest('[data-rec]');
+ if(r){const [g,st]=r.dataset.rec.split(':');const l=ALL[+g];const inRun=!!r.closest('#runner'),inDetail=!!r.closest('#detail');
+  if(st==='clear')clearRec(l);else record(l,st);
+  if(inRun){refresh('#run-q');const nx=nextLamp();$('#live').textContent=`기록함: ${l.c.q} — ${SN[l.st]}. ${nx?'다음 점검: '+nx.c.q:'체크리스트를 다 채웠다'}`}
+  else if(inDetail){refresh();const el=$(`#d-${l.i} [data-rec="${g}:${st==='clear'?'bad':st}"]`)||$(`#d-${l.i} .rec button`);el&&el.focus();$('#live').textContent=`기록함: ${l.c.q} — ${SN[l.st]}`}
+  else{const row=r.closest('details.ck'),pane=row&&row.closest('.tabpanel');const rows=pane?$$('#'+pane.id+' details.ck'):[];const nx=rows[rows.indexOf(row)+1];const nk=nx&&nx.dataset.k;
+   OPEN.add(l.key);OPENG.add(l.id);refresh();const sel_=k=>pane&&k!=null&&$(`#${pane.id} details[data-k="${k}"] summary`);
+   const el=sel_(g)||sel_(nk)||(pane&&$(`#${pane.id} details.ck summary`))||$('#run-q');el&&el.focus();$('#live').textContent=`기록함: ${l.c.q} — ${SN[l.st]}${sel_(g)?'':' · 이 목록에서 빠졌다'}`}
+  return}
+ const lt=e.target.closest('[data-later]');if(lt){LATER.add(ALL[+lt.dataset.later].key);checkP();$('#run-q').focus();return}
+ const bk=e.target.closest('[data-bulk]');if(bk){(lamps[bk.dataset.bulk]||[]).filter(x=>!x.done&&x.auto==='ok').forEach(x=>record(x,'ok'));refresh('#run-q');$('#live').textContent=`${NAME[bk.dataset.bulk]} 자동 정상을 한꺼번에 확인했다`;return}
+ const rw=e.target.closest('[data-row]');if(rw){goRow(rw.dataset.row,rw);return}
+ const fcd=e.target.closest('[data-fcard]');if(fcd){if(fcd.dataset.fnav!==undefined){fcd.closest('.fmap').querySelectorAll('[data-fnav]').forEach(x=>x.tabIndex=-1);fcd.tabIndex=0}goCard(fcd.dataset.fcard);return}
+ const tg=e.target.closest('[data-tabgo]');if(tg){showTab(tg.dataset.tabgo);$('#tab-'+tg.dataset.tabgo).focus();return}
+ const op=e.target.closest('[data-open]');if(op){const [k,i]=op.dataset.open.split(':');const t=document.getElementById('n-'+k);pick(k,{from:t,lamp:+i,keep:true});if(!drawer()){t.scrollIntoView({block:'center'});t.focus()}return}
+ const fb=e.target.closest('#p-check [data-f]');if(fb){flt=fb.dataset.f;checkP();const nb=$(`#p-check [data-f="${flt}"]`);nb&&nb.focus();return}
+ if(e.target.closest('[data-export]')){exportMd();return}
+ if(e.target.closest('[data-reset]')){if(confirm('이 실행의 체크리스트 기록을 모두 지울까요?')){REC={};save();LATER.clear();refresh('#run-q')}return}});
+document.addEventListener('change',e=>{const m=e.target.closest('[data-memo]');if(!m)return;const l=ALL[+m.dataset.memo];const r=REC[l.key]||{};r.memo=m.value.trim();if(!r.memo&&!r.st)delete REC[l.key];else REC[l.key]=r;l.memo=r.memo||'';save()});
+document.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches('details.fother')){FOTHER=d.open;return}if(d.matches&&d.matches('details.grp')&&!STS.includes(flt)){if(d.open)OPENG.add(d.dataset.g);else OPENG.delete(d.dataset.g);return}if(!(d.matches&&d.matches('details.ck')))return;const l=ALL[+d.dataset.k];if(d.open)OPEN.add(l.key);else OPEN.delete(l.key)},true);
+function render(){
+ $('#title').innerHTML=`ROAS 점검 이력판 · ${esc(R.advertiser)}<span class="ver">v4.1</span>`;
+ $('#subtitle').textContent=`메타 · ${R.date} · ${R_==='D'?'데일리 — 같아야 할 값이 그대로인가':'위클리 — 흐름이 어디서 꺾였나'}`;
+ document.title=`ROAS 점검 이력판 · ${R.advertiser} · ${R_==='D'?'데일리':'위클리'}`;
+ band();grid();detail();traceP();tabs();bindGo('#tabs');
+ $('#circ-sub').textContent=R_==='D'?`줄 = 자리, 칸 = 지난 13일(실행한 날만 기호, 빗금 = 실행 없음), 오른쪽 끝 = 이번 점검`:`줄 = 자리, 칸 = 지난 7주(빗금 = 실행 없음), 오른쪽 끝 = 이번 주 점검`;
+ $('#circ').addEventListener('keydown',nav);$('#tabs').addEventListener('keydown',fnav);
+ }
+render();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sel){const o=opener;sel=null;pick(null,{});if(o)o.focus()}});
+const setThemeLabel=()=>{const c=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');$('#theme').textContent=c==='dark'?'◐ 밝게':'◐ 어둡게'};
+let th=null;try{th=localStorage.getItem('roas-board-theme')}catch(e){}if(th)document.documentElement.setAttribute('data-theme',th);setThemeLabel();
+$('#theme').onclick=()=>{const c=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('roas-board-theme',n)}catch(e){}setThemeLabel()};
+})();
+</script></body></html>

@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROAS 저하 점검 지도</title>
+<style>
+:root {
+  --bg: #f6f5f1; --surface: #ffffff; --surface-2: #f1efe9; --text: #1d1d1b; --muted: #66655f; --line: #dcd9cf; --line-strong: #a9a69b;
+  --accent: #2f5fd0; --accent-soft: #e4ebfb; --on-accent: #ffffff;
+  --s: #a8741a; --s-soft: #f6eedf; --j: #1f8a5b; --j-soft: #e3f2ea; --m: #2f5fd0; --m-soft: #e4ebfb;
+  --d: #c2410c; --d-soft: #fdebdf; --w: #6d4bc4; --w-soft: #efe9fb;
+  --hot: #c2410c; --hot-soft: #fde6d6;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141513; --surface: #1d1e1b; --surface-2: #262723; --text: #ecebe6; --muted: #a4a39c; --line: #383934; --line-strong: #5e5f58;
+    --accent: #85a7ff; --accent-soft: #232e4a; --on-accent: #0f1320;
+    --s: #e3b35f; --s-soft: #2c2619; --j: #5fd09c; --j-soft: #19291f; --m: #85a7ff; --m-soft: #1d2438;
+    --d: #ff9a62; --d-soft: #3a2318; --w: #b59cff; --w-soft: #2a2340;
+    --hot: #ff8a4c; --hot-soft: #45261a;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141513; --surface: #1d1e1b; --surface-2: #262723; --text: #ecebe6; --muted: #a4a39c; --line: #383934; --line-strong: #5e5f58;
+  --accent: #85a7ff; --accent-soft: #232e4a; --on-accent: #0f1320;
+  --s: #e3b35f; --s-soft: #2c2619; --j: #5fd09c; --j-soft: #19291f; --m: #85a7ff; --m-soft: #1d2438;
+  --d: #ff9a62; --d-soft: #3a2318; --w: #b59cff; --w-soft: #2a2340;
+  --hot: #ff8a4c; --hot-soft: #45261a;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15.5px/1.65 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif; word-break: keep-all; overflow-wrap: anywhere; }
+.wrap { max-width: 1160px; margin: 0 auto; padding: 0 16px 90px; }
+h1 { font-size: 28px; line-height: 1.3; margin: 28px 0 6px; letter-spacing: -.01em; }
+h2 { font-size: 21px; margin: 0 0 4px; letter-spacing: -.01em; }
+h3 { font-size: 16px; margin: 0 0 6px; }
+p { margin: 0 0 8px; }
+.lead { color: var(--muted); font-size: 16px; }
+.muted { color: var(--muted); }
+.small { font-size: 13.5px; }
+section { margin-top: 44px; scroll-margin-top: 70px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 999px; white-space: nowrap; }
+.tag.S { background: var(--s-soft); color: var(--s); } .tag.J { background: var(--j-soft); color: var(--j); } .tag.M { background: var(--m-soft); color: var(--m); }
+.tag.D { background: var(--d-soft); color: var(--d); } .tag.W { background: var(--w-soft); color: var(--w); }
+.sec-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 4px; }
+.sec-sub { color: var(--muted); margin-bottom: 14px; }
+
+/* 상단 바 */
+.bar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.bar-in { max-width: 1160px; margin: 0 auto; padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a { color: var(--muted); text-decoration: none; font-size: 13.5px; padding: 4px 9px; border-radius: 8px; white-space: nowrap; }
+.nav a:hover { color: var(--text); background: var(--surface-2); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); flex: none; }
+.seg button { border: 0; background: none; color: var(--text); padding: 5px 12px; font: inherit; font-size: 13.5px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+
+/* 한눈에: 겹친 틀 */
+.nest { position: relative; border-radius: 18px; padding: 14px; background: var(--s-soft); border: 1.5px solid color-mix(in srgb, var(--s) 45%, transparent); }
+.nest .in { border-radius: 14px; padding: 14px; margin-top: 10px; }
+.nest .in.J { background: var(--j-soft); border: 1.5px solid color-mix(in srgb, var(--j) 45%, transparent); }
+.nest .in.M { background: var(--m-soft); border: 1.5px solid color-mix(in srgb, var(--m) 45%, transparent); }
+.nest-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.nest-head b { font-size: 16px; }
+.nest-head .q { font-weight: 700; }
+.nest-head .shape { color: var(--muted); font-size: 13.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { font-size: 13px; padding: 2px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); text-decoration: none; color: var(--text); }
+a.chip:hover { border-color: var(--line-strong); }
+.flow-top, .flow-bottom { display: grid; gap: 10px; }
+.flow-top { margin-bottom: 10px; }
+.flow-bottom { grid-template-columns: 1fr 1fr; margin-top: 10px; }
+@media (max-width: 680px) { .flow-bottom { grid-template-columns: 1fr; } }
+.arrow-down { text-align: center; color: var(--muted); font-size: 13px; margin: 6px 0; }
+.outer-note { position: absolute; right: 16px; top: 14px; font-size: 12.5px; color: var(--muted); }
+@media (max-width: 680px) { .outer-note { position: static; display: block; margin-top: 4px; } }
+
+/* 신호판 */
+.formula { font-size: 16px; font-weight: 700; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); display: inline-block; margin-bottom: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 900px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .tiles { grid-template-columns: 1fr; } }
+.tile .k { font-weight: 800; font-size: 16px; }
+.tile .dir { font-size: 22px; font-weight: 800; color: var(--hot); margin-left: 4px; }
+.tile .why { color: var(--muted); font-size: 13.5px; margin: 4px 0 8px; }
+.tile .to { font-size: 13.5px; font-weight: 700; padding-top: 8px; border-top: 1px dashed var(--line); }
+
+/* 시장 */
+.macro { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+@media (max-width: 1000px) { .macro { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .macro { grid-template-columns: 1fr; } }
+.macro .card { border-top: 4px solid var(--s); padding-top: 12px; }
+
+/* 자사 · 웹 상태 */
+.path { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; position: relative; }
+.stop { position: relative; text-align: center; padding: 0 6px; }
+.stop button { width: 100%; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--text); border-radius: 12px; padding: 10px 6px 8px; font: inherit; cursor: pointer; position: relative; z-index: 1; }
+.stop button:hover { border-color: var(--j); }
+.stop button[aria-pressed="true"] { border-color: var(--j); background: var(--j-soft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--j) 35%, transparent); }
+.stop .nm { font-weight: 800; display: block; }
+.stop .hint { font-size: 12px; color: var(--muted); display: block; }
+.stop .cnt { font-size: 11.5px; margin-top: 4px; display: flex; gap: 4px; justify-content: center; }
+.stop:not(:last-child)::after { content: ""; position: absolute; top: 32px; right: -6px; width: 12px; height: 2px; background: var(--line-strong); z-index: 0; }
+.ev { margin-top: 8px; font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--j); }
+.ev::before { content: "↓ "; color: var(--muted); }
+.rail { margin: 6px 6px 0; }
+.rail button { width: 100%; border: 1.5px dashed var(--j); background: var(--surface); color: var(--text); border-radius: 12px; padding: 8px 12px; font: inherit; cursor: pointer; text-align: left; }
+.rail button[aria-pressed="true"] { background: var(--j-soft); border-style: solid; }
+.cust { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin: 0 6px 8px; }
+.cust::after { content: ""; flex: 1; height: 1px; background: repeating-linear-gradient(90deg, var(--line-strong) 0 6px, transparent 6px 10px); }
+@media (max-width: 760px) {
+  .path { grid-template-columns: 1fr; gap: 8px; }
+  .stop { text-align: left; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 0; }
+  .stop:not(:last-child)::after { top: auto; bottom: -8px; left: 22px; right: auto; width: 2px; height: 8px; }
+  .stop button { text-align: left; padding: 8px 12px; }
+  .stop .cnt { justify-content: flex-start; }
+  .ev { margin-top: 0; }
+  .rail { margin: 10px 0 0; }
+  .cust { margin: 0 0 8px; }
+}
+
+/* 매체 · 메타 구조 */
+.tree { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+.tnode { position: relative; padding: 0 8px; }
+.tnode button { width: 100%; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--text); border-radius: 12px; padding: 10px 12px; font: inherit; cursor: pointer; text-align: left; position: relative; z-index: 1; box-shadow: 3px 3px 0 -1px var(--surface), 3px 3px 0 0 var(--line-strong); }
+.tnode.one button { box-shadow: none; }
+.tnode.lots button { box-shadow: 3px 3px 0 -1px var(--surface), 3px 3px 0 0 var(--line-strong), 6px 6px 0 -1px var(--surface), 6px 6px 0 0 var(--line-strong); }
+.tnode button:hover { border-color: var(--m); }
+.tnode button[aria-pressed="true"] { border-color: var(--m); background: var(--m-soft); }
+.tnode .nm { font-weight: 800; display: block; }
+.tnode .hint { font-size: 12px; color: var(--muted); display: block; }
+.tnode .many { font-size: 11.5px; color: var(--m); font-weight: 700; }
+.tnode:not(:last-child)::after { content: "→"; position: absolute; right: -8px; top: 22px; color: var(--text); font-weight: 800; z-index: 2; }
+.crossbar { display: grid; grid-template-columns: 1fr 3fr; margin-top: 14px; }
+.crossbar button { grid-column: 2; margin: 0 8px; border: 1.5px dashed var(--m); background: var(--surface); color: var(--text); border-radius: 12px; padding: 8px 12px; font: inherit; cursor: pointer; text-align: left; }
+.crossbar button[aria-pressed="true"] { background: var(--m-soft); border-style: solid; }
+.ghost { margin-top: 12px; border: 1.5px dashed var(--line-strong); border-radius: 12px; padding: 8px 12px; color: var(--muted); font-size: 13.5px; }
+@media (max-width: 760px) {
+  .tree { grid-template-columns: 1fr; gap: 10px; }
+  .tnode { padding: 0; }
+  .tnode:not(:last-child)::after { content: "↓"; right: auto; left: 18px; top: auto; bottom: -14px; }
+  .crossbar { grid-template-columns: 1fr; }
+  .crossbar button { grid-column: 1; margin: 0; }
+}
+.cnt .n { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 0 7px; border-radius: 999px; }
+.cnt .n.D { background: var(--d-soft); color: var(--d); } .cnt .n.W { background: var(--w-soft); color: var(--w); }
+
+/* 점검 카드 패널 */
+.panel { margin-top: 16px; }
+.panel-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; margin-bottom: 10px; }
+.panel-head h3 { margin: 0; font-size: 17px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cols.one { grid-template-columns: 1fr; }
+@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+.col-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+.col-head.D { border-color: var(--d); } .col-head.W { border-color: var(--w); }
+.col-head b { font-size: 15px; }
+.chk { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+.chk .top { display: flex; gap: 8px; justify-content: space-between; align-items: flex-start; }
+.chk .q { font-weight: 800; font-size: 15.5px; }
+.chk .basis { flex: none; font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); cursor: help; }
+.chk dl { display: grid; grid-template-columns: 4.6em 1fr; gap: 3px 8px; margin: 8px 0 0; font-size: 13.5px; }
+.chk dt { color: var(--muted); font-weight: 700; }
+.chk dd { margin: 0; }
+.chk dd.do { font-weight: 700; }
+.chk .flag { color: var(--hot); font-size: 12px; font-weight: 700; margin-top: 6px; }
+.none { color: var(--muted); font-size: 13.5px; padding: 6px 0; }
+
+/* 예시 */
+.demo-ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 9px; padding: 6px 13px; font: inherit; font-size: 14px; cursor: pointer; }
+.btn:hover { border-color: var(--line-strong); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn:disabled { opacity: .4; cursor: default; }
+.trail { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.trail span { font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.trail span.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.trail span.done { color: var(--text); }
+.svg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.svg-scroll svg { display: block; min-width: 760px; width: 100%; height: auto; }
+.tn rect.body { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.2; }
+.tn text { fill: var(--text); font-size: 13px; font-weight: 700; }
+.tn text.v { fill: var(--muted); font-weight: 400; font-size: 12px; }
+.tn.focus rect.body { stroke: var(--accent); stroke-width: 2.6; }
+.tn.hot rect.body { fill: var(--hot-soft); stroke: var(--hot); stroke-width: 2.4; }
+.tn.calm { opacity: .45; }
+.edge { stroke: var(--line-strong); stroke-width: 1.6; fill: none; }
+.share { fill: var(--hot); } .share-bg { fill: var(--line); }
+.demo-msg { margin-top: 12px; padding: 12px 14px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 8px; font-size: 15px; }
+
+/* 알림 */
+.alerts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 860px) { .alerts { grid-template-columns: 1fr; } }
+.msg { font-size: 13.5px; line-height: 1.7; }
+.msg div { padding-left: 1.4em; text-indent: -1.4em; }
+.msg div:first-child { font-weight: 800; padding-left: 0; text-indent: 0; margin-bottom: 4px; }
+
+/* 표 · 부록 */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+th { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+@media (max-width: 680px) {
+  table.stack thead { display: none; }
+  table.stack tr { display: block; border-bottom: 1px solid var(--line); padding: 8px 0; }
+  table.stack td { display: block; border: 0; padding: 2px 0; }
+  table.stack td::before { content: attr(data-k); display: block; font-size: 12px; color: var(--muted); font-weight: 700; }
+}
+details.card { margin-top: 10px; box-shadow: none; }
+details.card > summary { cursor: pointer; font-weight: 800; }
+details.card[open] > summary { margin-bottom: 10px; }
+.basis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 680px) { .basis-grid { grid-template-columns: 1fr; } }
+ul.tight { margin: 0; padding-left: 18px; } ul.tight li { margin-bottom: 4px; }
+/* 기능으로 담기 */
+.doors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 900px) { .doors { grid-template-columns: 1fr; } }
+.door { border-top: 4px solid var(--accent); }
+.door .meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.door dl { display: grid; grid-template-columns: 4.6em 1fr; gap: 4px 8px; margin: 0; font-size: 13.5px; }
+.door dt { color: var(--muted); font-weight: 700; }
+.door dd { margin: 0; }
+.engine { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 8px; }
+@media (max-width: 900px) { .engine { grid-template-columns: 1fr; gap: 8px; } }
+.eng { position: relative; padding: 0 8px; }
+.eng .card { height: 100%; padding: 12px; }
+.eng:not(:last-child)::after { content: "→"; position: absolute; right: -7px; top: 18px; font-weight: 800; }
+@media (max-width: 900px) { .eng { padding: 0; } .eng:not(:last-child)::after { content: "↓"; right: auto; left: 16px; top: auto; bottom: -15px; } }
+.eng .who { font-size: 12px; font-weight: 700; color: var(--accent); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+#result-table td:first-child { color: var(--muted); font-weight: 700; white-space: nowrap; width: 7.5em; }
+.brow { display: grid; grid-template-columns: 4.5em 1fr; gap: 8px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.brow .lname { font-weight: 800; font-size: 13.5px; padding-top: 3px; }
+.lights { display: flex; flex-wrap: wrap; gap: 6px; }
+.light { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.light i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.light.ok i { background: var(--j); } .light.bad i { background: var(--hot); } .light.warn i { background: var(--s); } .light.na i { background: transparent; border: 1.5px dashed var(--line-strong); }
+.light.bad { border-color: var(--hot); background: var(--hot-soft); font-weight: 700; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; }
+.theme-toggle { position: fixed; right: 14px; bottom: 14px; z-index: 11; }
+</style>
+</head>
+<body>
+<div class="bar"><div class="bar-in">
+  <nav class="nav" aria-label="목차">
+    <a href="#glance">한눈에</a><a href="#signal">신호판</a><a href="#market">시장</a><a href="#own">자사</a><a href="#media">매체</a><a href="#demo">예시</a><a href="#alerts">알림</a><a href="#causes">원인 읽기</a><a href="#product">기능</a><a href="#appendix">부록</a>
+  </nav>
+  <div class="seg" role="group" aria-label="보기" id="rhythm-seg"></div>
+</div></div>
+
+<div class="wrap">
+  <header>
+    <h1>ROAS 저하 점검 지도</h1>
+    <p class="lead">ROAS가 떨어지면 <b>신호판</b>에서 무엇이 떨어졌는지 보고, <b>시장 → 자사 → 매체</b> 순서로 바깥에서 안으로 원인 자리를 찾는다. 같은 자리라도 <b>데일리</b>는 같아야 할 값이 그대로인지, <b>위클리</b>는 흐름이 어디서 꺾였는지 본다. (메타 기준 초안)</p>
+  </header>
+
+  <section id="glance"><div id="glance-box"></div></section>
+
+  <section id="signal">
+    <div class="sec-title"><h2>신호판</h2><span class="muted small">무엇이 떨어졌나 → 어디부터 볼까</span></div>
+    <p class="sec-sub">ROAS는 네 숫자로 쪼개진다. 어느 숫자가 움직였는지가 볼 자리를 가리킨다.</p>
+    <div class="formula">ROAS = 클릭률 × 구매 전환율 × 객단가 ÷ 노출 단가</div>
+    <div class="tiles" id="tiles"></div>
+    <div class="panel" id="panel-G"></div>
+  </section>
+
+  <section id="market">
+    <div class="sec-title"><h2>시장</h2><span class="tag S">거시</span></div>
+    <p class="sec-sub" id="market-sub"></p>
+    <div class="macro" id="macro"></div>
+  </section>
+
+  <section id="own">
+    <div class="sec-title"><h2>자사</h2><span class="tag J">웹 상태</span></div>
+    <p class="sec-sub" id="own-sub"></p>
+    <div class="card">
+      <div class="cust">광고를 누른 손님이 걷는 길</div>
+      <div class="path" id="path"></div>
+      <div class="rail" id="rail"></div>
+    </div>
+    <div class="panel" id="panel-J"></div>
+  </section>
+
+  <section id="media">
+    <div class="sec-title"><h2>매체</h2><span class="tag M">메타 구조</span></div>
+    <p class="sec-sub" id="media-sub"></p>
+    <div class="card">
+      <div class="tree" id="tree"></div>
+      <div class="crossbar" id="crossbar"></div>
+      <div class="ghost" id="ghost"></div>
+    </div>
+    <div class="panel" id="panel-M"></div>
+  </section>
+
+  <section id="demo">
+    <div class="sec-title"><h2>예시 — 원인 자리 찾아가기</h2><span class="tag D">데일리</span></div>
+    <p class="sec-sub">잃은 매출 = 광고비 × (평소 ROAS − 어제 ROAS). 한 곳에 몰리면 내려가고, 고루 퍼지면 그 자리에서 멈춘다. 숫자는 모두 예시.</p>
+    <div class="card">
+      <div class="demo-ctrl">
+        <button class="btn" id="demo-prev">이전</button>
+        <button class="btn primary" id="demo-next">다음</button>
+        <button class="btn" id="demo-reset">처음으로</button>
+      </div>
+      <div class="trail" id="trail"></div>
+      <div class="svg-scroll"><svg id="demo-svg" viewBox="0 0 1000 330" role="img" aria-label="예시 계정의 원인 자리 찾기"></svg></div>
+      <div class="demo-msg" id="demo-msg"></div>
+    </div>
+  </section>
+
+  <section id="alerts">
+    <div class="sec-title"><h2>마케터가 받는 알림</h2><span class="muted small">예시</span></div>
+    <p class="sec-sub">자리(레이어 › 노드)와 할 일을 먼저, 이상 없는 것도 함께 적는다.</p>
+    <div class="alerts" id="alert-box"></div>
+  </section>
+
+  <section id="causes">
+    <div class="sec-title"><h2>원인 읽기</h2><span class="tag W">위클리</span></div>
+    <p class="sec-sub">위클리는 같이 움직인 숫자의 조합으로 원인을 읽는다. 처음엔 여덟 가지로 시작하고 기록이 쌓이면 늘린다.</p>
+    <div class="card"><table class="stack" id="pattern-table"></table></div>
+  </section>
+
+  <section id="product">
+    <div class="sec-title"><h2>기능으로 담기</h2></div>
+    <p class="sec-sub" id="product-pitch"></p>
+    <div class="doors" id="doors"></div>
+    <h3 style="margin-top:22px">엔진 — 세 입구가 같은 결과를 쓴다</h3>
+    <div class="engine" id="engine"></div>
+    <div class="two" style="margin-top:18px">
+      <div class="card"><h3>점검 결과 한 줄</h3><p class="muted small">세 입구는 모두 이 한 줄을 읽는다.</p><table id="result-table"></table></div>
+      <div class="card"><h3>점검 지도 화면 예시</h3><p class="muted small" id="board-title"></p><div id="board"></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h3>이미 잡힌 개발 과제와의 관계</h3><table class="stack" id="fit-table"></table></div>
+    <div class="card" style="margin-top:14px"><h3>만드는 순서</h3><table class="stack" id="phase-table"></table></div>
+  </section>
+
+  <section id="appendix">
+    <div class="sec-title"><h2>부록</h2></div>
+    <details class="card" open><summary>판정 기준 — 표준값 없이 판정하는 법</summary><div id="basis-box"></div></details>
+    <details class="card"><summary>기준 쌓기 — 판정이 맞았는지 배우는 고리</summary><ul class="tight" id="learn"></ul></details>
+    <details class="card"><summary>헷갈리기 쉬운 것</summary><div id="illusion-box"></div></details>
+    <details class="card"><summary>모아야 할 데이터</summary><table class="stack" id="collect-table"></table></details>
+    <details class="card"><summary>메타 필드 확인 상태</summary><div id="fields"></div></details>
+  </section>
+</div>
+<button class="btn theme-toggle" id="theme-toggle" aria-label="밝기 바꾸기">◐</button>
+<script>
+// 화면 뼈대 정본. 점검 항목은 checks.js
+window.ROAS_DATA = {
+  rhythms: {
+    D: { name: "데일리", sub: "같아야 할 값이 그대로인가", when: "매일 아침, 어제 마감 기준(행사 기간에는 수시)", out: "오늘 고칠 것" },
+    W: { name: "위클리", sub: "흐름이 어디서 꺾였나", when: "주 1회, 위클리 리포트 전", out: "다음에 바꿀 방향(광고주 협의 → 다음 기획 · 미디어믹스)" }
+  },
+
+  layers: [
+    { id: "S", name: "시장", lens: "거시", ask: "우리만의 문제인가, 다 같이 겪는 일인가", shape: "같은 업종이 다 같이 떨어진다",
+      nodes: [
+        { id: "S1", name: "시즌 상황", hint: "연휴 · 대목 · 시즌 곡선" },
+        { id: "S2", name: "수요 상황", hint: "찾는 사람 수" },
+        { id: "S3", name: "경쟁 상황", hint: "광고 자리값 · 경쟁사" },
+        { id: "S4", name: "업종 흐름", hint: "같은 업종 광고주들" },
+        { id: "S5", name: "플랫폼", hint: "메타 장애 · 변경" }
+      ] },
+    { id: "J", name: "자사", lens: "웹 상태", ask: "광고를 누른 손님이 막힘 없이 사고, 그게 메타에 잡히나", shape: "매체를 가리지 않고 사이트에서 막힌다",
+      nodes: [
+        { id: "J1", name: "도착", hint: "클릭 → 페이지", event: "PageView" },
+        { id: "J2", name: "랜딩", hint: "첫 화면 · 속도", event: "PageView" },
+        { id: "J3", name: "상품", hint: "재고 · 가격", event: "ViewContent" },
+        { id: "J4", name: "장바구니", hint: "담기 · 로그인", event: "AddToCart" },
+        { id: "J5", name: "결제", hint: "결제 수단", event: "InitiateCheckout" },
+        { id: "J6", name: "구매 완료", hint: "주문 · 금액", event: "Purchase" }
+      ],
+      rail: { id: "JT", name: "측정 태그", hint: "단계마다 메타로 이벤트가 나가나 · 서버 이벤트 · 태그 변경" } },
+    { id: "M", name: "매체", lens: "메타 구조", ask: "광고가 의도대로 나가고 있나", shape: "그 매체 안의 한 줄기에서만 떨어진다",
+      now: "메타", later: ["구글", "네이버", "카카오", "틱톡"],
+      nodes: [
+        { id: "M1", name: "계정", hint: "결제 · 한도 · 오디언스 · 변경 이력", many: "1" },
+        { id: "M2", name: "캠페인", hint: "목표 · 일정 · 캠페인 예산", many: "여러 개" },
+        { id: "M3", name: "광고세트", hint: "타겟 · 예산 · 입찰 · 학습", many: "더 여러 개" },
+        { id: "M4", name: "광고(소재)", hint: "소재 · 연결 주소 · 심사", many: "가장 많음" }
+      ],
+      cross: { id: "MX", name: "단면", hint: "지면 · 기기 · 연령 · 소구점 — 캠페인 · 광고세트 · 광고를 가로질러 묶어 본다" } }
+  ],
+
+  basis: {
+    "규칙": { r: "D", name: "늘 맞아야 함", desc: "어느 광고주든 늘 참이어야 하는 규칙. 첫날부터 판정한다." },
+    "어제": { r: "D", name: "어제와 같나", desc: "어제 저장한 설정 · 실행된 수정안과 비교. 다르면 변경 이력에서 누가 · 언제를 붙인다." },
+    "평소": { r: "D", name: "평소 범위", desc: "그 계정이 늘 보이던 비율의 범위. 기록이 쌓이기 전에는 값과 변화만 보여 준다." },
+    "몰림": { r: "D", name: "몰렸나 · 퍼졌나", desc: "잃은 매출이 한 곳에 몰렸으면 그쪽으로 내려가고, 고루 퍼졌으면 지금 자리에서 멈춘다." },
+    "숫자": { r: "W", name: "어느 숫자가", desc: "ROAS 변화를 노출 단가 · 클릭률 · 전환율 · 객단가의 몫으로 나눈다." },
+    "주째": { r: "W", name: "몇 주째", desc: "같은 방향으로 몇 주째 움직였는지 센다." },
+    "같이": { r: "W", name: "같이 움직임", desc: "함께 움직인 숫자의 조합으로 원인을 읽는다." },
+    "비중": { r: "W", name: "비중 이동", desc: "각자 나빠진 건지, 낮은 쪽으로 비중이 옮겨 간 건지 나눈다." },
+    "닳음": { r: "W", name: "닳았나", desc: "소재 · 소구점 · 타겟을 자기 초반과 비교한다." },
+    "비교": { r: "W", name: "눈으로 비교", desc: "소재와 랜딩, 우리와 경쟁사를 맞대어 본다(에이전트 판단)." }
+  },
+
+  // 신호판: ROAS = 클릭률 × 구매 전환율 × 객단가 ÷ 노출 단가
+  tiles: [
+    { k: "노출 단가(CPM)", dir: "↑", to: "시장 › 경쟁 상황 → 매체 › 광고세트(타겟)", why: "광고 자리가 비싸졌거나 타겟이 좁아졌다" },
+    { k: "클릭률(CTR)", dir: "↓", to: "매체 › 광고(소재) → 매체 › 단면(소구점)", why: "소재가 닳았거나 바뀌었다" },
+    { k: "구매 전환율", dir: "↓", to: "자사 › 웹 상태 먼저 → 매체 › 광고세트(타겟 품질)", why: "사이트에서 막혔거나, 덜 살 사람이 들어온다" },
+    { k: "객단가", dir: "↓", to: "자사 › 상품", why: "싼 상품으로 쏠렸거나 혜택이 바뀌었다" }
+  ],
+
+  // 예시 계정 위치 찾기(만 원, 모든 숫자는 예시)
+  demo: {
+    tree: {
+      acc: { t: "계정", v: "ROAS 388% → 258% · 잃은 매출 518" },
+      camps: [
+        { k: "A", t: "캠페인 A · 상시", v: "390% → 355% · 잃은 42", share: 8, sets: [["A-1", "변화 작음"], ["A-2", "변화 작음"]] },
+        { k: "B", t: "캠페인 B · 가을 행사", v: "410% → 188% · 잃은 445", share: 86, sets: [["B-1 · 신규", "420% → 190% (−55%)", 57], ["B-2 · 관심사", "400% → 185% (−54%)", 43]] },
+        { k: "C", t: "캠페인 C · 리타겟", v: "330% → 291% · 잃은 31", share: 6, sets: [["C-1", "변화 작음"]] }
+      ]
+    },
+    steps: [
+      { at: "start", msg: "어제 메타 계정 ROAS가 388%에서 258%로 떨어졌다. 같은 시차로 비교해도 낮다 → 정말 떨어졌다." },
+      { at: "market", msg: "시장: 같은 업종 광고주 4곳 중 같이 떨어진 곳이 없다 → 다 같이 겪는 일이 아니다." },
+      { at: "own", msg: "자사: 자사몰 전체 매출은 −8%, 메타 기여 매출은 −34% → 메타 쪽이 훨씬 크다. 매체로 들어간다. (자사 웹 상태의 '늘 맞아야 함' 점검은 그래도 같이 돈다)" },
+      { at: "acc", msg: "계정 → 캠페인: 잃은 매출 518 중 86%가 캠페인 B → 몰렸다. 캠페인 B로 내려간다." },
+      { at: "B", msg: "캠페인 B → 광고세트: B-1 · B-2가 똑같이 절반 넘게 떨어졌다(−55% · −54%) → 퍼졌다. 원인은 광고세트가 아니라 캠페인 B 자리에 있다. 여기서 멈춘다." },
+      { at: "found", msg: "캠페인 B 점검: '켜질 때 켜지고 꺼질 때 꺼졌나?' → 가을 행사는 10/21에 끝났는데 캠페인 B가 아직 켜져 있다. 같은 날 자사 › 랜딩 '행사가 아직 하나?'도 걸렸다 — 같은 원인이다." }
+    ]
+  },
+
+  alerts: {
+    D: [
+      "[데일리] A사 · 메타 · 10/22 마감 기준",
+      "ROAS 258% (목표 350% · 평소 388%) — 같은 시차로 봐도 하락",
+      "위치: 시장 아님 · 자사몰 −8% / 메타 −34% · 캠페인 B에 86% 몰림 → 캠페인 B에서 퍼짐",
+      "🔴 매체 › 캠페인 B  가을 행사(10/21 종료) 뒤에도 켜져 있음",
+      "   → 끄거나 상시 랜딩으로 교체. 광고주에게 연장 여부 확인",
+      "🔴 자사 › 랜딩  행사 페이지 종료 — 같은 원인",
+      "이상 없음: 계정 · 결제 · 한도 · 측정 태그 · 사이트 응답 · 결제 단계"
+    ],
+    W: [
+      "[위클리] A사 · 메타 · 10/14~10/20",
+      "ROAS 290% (직전 4주 평균 360%) · 3주째 하락 · 사고 난 날(10/16~18 품절) 빼도 하락 남음",
+      "어느 숫자가: 클릭률 −22% ← 가장 큼 | 전환율 −6% | 노출 단가 +4% | 객단가 0%",
+      "가설 1 (근거 강함) 매체 › 광고(소재) · 단면(소구점) — '할인율' 소구점이 닳음",
+      "   상위 소재 3개 빈도 3.8 → 5.2, 클릭률 3주째 하락, 4주째 새 소구점 없음",
+      "   → 소구점 테스트 2개(제형 · 후기) 추가, 할인율 소재 비중 축소 — 소재 제작 광고주 협의 필요",
+      "가설 2 (근거 보통) 매체 › 광고세트 — 리타겟 모수 소진(도달 정체 · 빈도 상승)",
+      "확인 필요: 시장 › 경쟁 상황 — 경쟁사 행사 여부"
+    ]
+  },
+
+  patterns: [
+    ["소재가 닳았다", "빈도 ↑ · 클릭률 ↓", "매체 › 광고(소재) · 단면(소구점)", "새 소구점 테스트, 닳은 소재 비중 축소"],
+    ["타겟이 좁다", "광고비 ↑ · 도달 그대로 · 빈도 ↑ · 노출 단가 ↑", "매체 › 광고세트", "유사 타겟 확대, 리타겟 범위 조정"],
+    ["자리가 비싸졌다", "노출 단가 ↑ · 클릭률 · 전환율 그대로 · 업종도 ↑", "시장 › 경쟁 상황", "효율 단위로 모으기, 목표 조정 협의"],
+    ["찾는 사람이 줄었다", "검색량 ↓ · 업종도 같이 ↓", "시장 › 수요 상황", "수요가 남은 상품으로, 목표 조정 협의"],
+    ["사이트가 설득을 못 한다", "페이지까지는 오는데 전환율 ↓", "자사 › 랜딩 · 상품", "랜딩 메시지 · 혜택 협의"],
+    ["돈이 낮은 데로 옮겨 갔다", "각자는 그대로, 비중만 이동", "매체 › 계정 · 캠페인 · 광고세트 · 단면", "효율 단위 분리 · 예산 보장"],
+    ["너무 쪼개졌다", "광고세트 수 ↑ · 광고세트당 구매 ↓ · 학습 제한 ↑", "매체 › 캠페인 · 광고세트", "광고세트 합치기"],
+    ["싼 상품으로 쏠렸다", "객단가 ↓ · 저가 상품 비중 ↑", "자사 › 상품", "주력 상품 · 세트 노출 조정"]
+  ],
+
+  product: {
+    pitch: "점검 엔진은 하나, 입구는 셋. 기계가 매일 먼저 보고(알림), 지금 상태를 한 화면에 두고(점검 지도), 더 알고 싶으면 묻는다(원인 묻기).",
+    doors: [
+      { id: "alert", name: "데일리 알림", where: "슬랙", who: "기계가 먼저", when: "매일 아침 · 행사 기간 수시",
+        what: "데일리 점검 결과 중 '이상'만 자리 · 할 일과 함께 보낸다. 이상이 없으면 '정상' 한 줄.",
+        why: "급성은 빨리 알아야 한다. 마케터가 찾아가지 않아도 온다.",
+        human: "받고 처리한 뒤 '맞음 / 아님 / 원인 다름'을 누른다." },
+      { id: "board", name: "점검 지도", where: "사내 웹 화면", who: "마케터가 열어 봄", when: "알림의 '자세히' · 위클리 리포트 전",
+        what: "이 지도 그대로, 자리마다 지금 상태 불빛(정상 · 이상 · 확인 필요 · 못 봄)과 근거 값. 위클리 진단도 여기서 본다.",
+        why: "알림은 짧다. 어디까지 봤고 무엇이 정상인지, 흐름이 어떤지는 화면이 낫다.",
+        human: "광고주 보고 · 다음 기획 때 근거로 쓴다." },
+      { id: "ask", name: "원인 묻기", where: "슬랙 스레드 · 사내 에이전트", who: "마케터가 부름", when: "필요할 때",
+        what: "\"A사 어제 왜 떨어졌어?\", 알림 스레드에서 \"이거 더 봐 줘 · 광고주 보고용으로 정리해 줘\". 엔진 결과를 읽고 설명하며, 어디에도 안 걸린 경우를 파고든다.",
+        why: "판정표에 없는 일은 대화로 파야 한다. 엔진 결과를 근거로 말하니 매번 다른 답이 나오지 않는다.",
+        human: "묻고, 답을 광고주 메시지 · 보고서로 옮긴다." }
+    ],
+    engine: [
+      ["모으기", "메타 성과 · 설정 스냅샷 · 변경 이력 · 픽셀 이벤트, 웹 점검기, 자사몰, 업종 묶음, 검색 수요", "기계"],
+      ["점검하기", "76개 점검을 자리 · 리듬별 규칙으로 돌린다(늘 맞아야 함 · 어제와 같나 · 평소 범위 · 몇 주째 …)", "기계(규칙 · 계산)"],
+      ["자리 찾기", "잃은 매출이 몰린 곳을 따라 시장 → 자사 → 매체 → 계정 → 광고로", "기계(계산)"],
+      ["말로 풀기", "알림 문장, 위클리 가설 설명, 소재 vs 랜딩 '눈으로 비교', 판정 보류 파고들기", "에이전트(판정은 하지 않고 설명만)"],
+      ["쌓기", "모든 결과 · 피드백 저장 → 평소 범위 · 광고주 기준 · 업종 기준", "기계"]
+    ],
+    result: [
+      ["광고주 · 매체", "A사 · 메타"],
+      ["날짜 · 리듬", "10/22 · 데일리"],
+      ["자리", "매체 › 캠페인 › '캠페인 B · 가을 행사'"],
+      ["질문", "켜질 때 켜지고 꺼질 때 꺼졌나?"],
+      ["상태", "이상 (정상 · 이상 · 확인 필요 · 못 봄)"],
+      ["근거", "행사 종료 10/21 23:59 · 현재 켜짐 · 변경 이력 없음"],
+      ["할 일 · 급함", "끄거나 상시 랜딩으로 교체 · 즉시"],
+      ["피드백", "맞음 / 아님 / 원인 다름(실제 자리)"]
+    ],
+    states: [
+      { id: "ok", name: "정상", desc: "점검했고 문제 없음" },
+      { id: "bad", name: "이상", desc: "할 일이 있음" },
+      { id: "warn", name: "확인 필요", desc: "평소 범위가 아직 없거나 판단이 애매함" },
+      { id: "na", name: "못 봄", desc: "데이터가 없거나 연결이 안 됨 — 빈 곳을 숨기지 않는다" }
+    ],
+    board: {
+      title: "A사 · 메타 · 10/22 데일리",
+      rows: [
+        ["S", [["S1", "ok"], ["S2", "na"], ["S3", "na"], ["S4", "ok"], ["S5", "ok"]]],
+        ["J", [["J1", "warn"], ["J2", "bad"], ["J3", "ok"], ["J4", "ok"], ["J5", "ok"], ["J6", "ok"], ["JT", "ok"]]],
+        ["M", [["M1", "ok"], ["M2", "bad"], ["M3", "ok"], ["M4", "ok"], ["MX", "ok"]]]
+      ],
+      notes: [
+        "매체 › 캠페인 — 가을 행사 캠페인이 종료 후에도 켜짐",
+        "자사 › 랜딩 — 행사 페이지 종료(같은 원인)",
+        "자사 › 도착 — 클릭 대비 랜딩 조회 비율: 평소 범위가 아직 없어 값만 표시",
+        "시장 › 수요 상황 · 경쟁 상황 — 위클리 자리라 오늘은 보지 않음"
+      ]
+    },
+    fit: [
+      ["세팅 검수 ON/OFF 알림", "매체 › 캠페인 · 광고세트 '켜질 때 켜지고 꺼질 때 꺼졌나', '일정이 행사와 맞나'", "데일리 엔진 안에 들어간다"],
+      ["일예산 소진 관리", "매체 › 광고세트 '예산이 제대로 쓰이나', 매체 › 캠페인 '켜져 있는데 돈이 안 쓰이나'", "데일리 엔진 안에 들어간다"],
+      ["데일리 · 위클리 리포트", "위클리 진단의 가설 · 근거", "리포트의 원인 분석 칸을 채운다"]
+    ],
+    phases: [
+      ["1", "이번 전달", "설계 · 점검 지도 · 알림 예시 · 이 기능 구성안", "지금 있는 것"],
+      ["2", "데일리 — 첫날부터 판정되는 것", "'늘 맞아야 함' · '어제와 같나' 점검(메타 설정 스냅샷 · 변경 이력 · 웹 점검기) → 슬랙 알림. 기준값이 필요 없다", "데일리 알림"],
+      ["3", "기록이 쌓이면", "'평소 범위' 점검, 잃은 매출로 자리 찾기, 점검 지도 화면", "점검 지도"],
+      ["4", "위클리", "위클리 진단(어느 숫자가 · 몇 주째 · 같이 움직임 · 비중 · 닳음), 원인 묻기, 피드백으로 기준 고치기", "원인 묻기"],
+      ["5", "넓히기", "업종 기준(시장 레이어), 다른 매체(구글 · 네이버 · 카카오 · 틱톡)", "—"]
+    ]
+  },
+
+  appendix: {
+    learn: [
+      "알림마다 마케터가 '맞음 / 아님 / 원인 다름(실제 자리)'을 남긴다.",
+      "모든 점검값을 매일 저장한다(광고주 × 노드 × 항목 × 날짜). 픽셀 이벤트 수는 7일까지만 조회되므로 특히 매일 저장한다.",
+      "'평소 범위'는 이 기록에서 만든다(최근 값의 가운데와 흔들림 폭).",
+      "틀린 판정이 몰린 노드는 규칙을 고치고, 판정 보류가 쌓인 노드에는 새 점검을 만든다.",
+      "광고주별 기록이 모이면 업종 기준이 생긴다. 이것이 시장 › 업종 흐름의 재료다."
+    ],
+    illusions: [
+      ["작은 숫자에 속지 않기", "광고 하나 · 하루치 ROAS는 크게 흔들린다. 비율 대신 잃은 매출(광고비 × ROAS 하락)로 순서를 매긴다."],
+      ["비중 이동", "각자는 그대로인데 낮은 쪽으로 광고비가 옮겨 가면 위 단계 ROAS가 내려간다."],
+      ["메타가 옮긴 돈", "캠페인 예산 최적화 · 어드밴티지+에서는 메타가 예산을 옮긴다. 변경 이력에 없으면 메타의 배분이다."],
+      ["묶음 소재", "다이내믹 소재는 광고 하나에 소재가 여럿이라 요소 분할로 내려가 본다(받을 수 있는 지표가 적다)."],
+      ["안쪽만 보기", "시장 · 자사를 먼저 안 보면 사이트 장애나 업종 전체 하락을 메타 세팅 문제로 오해한다. 바깥에서 안으로 찾는다."]
+    ],
+    collect: [
+      ["메타 성과(insights, 하루 단위)", "광고비 · 노출 · 도달 · 빈도 · CPM · CTR · 링크 클릭 · 이벤트 수 · 이벤트 금액 · 구매 ROAS", "계정 → 광고", "매일(어제 + 최근 며칠 다시)"],
+      ["메타 성과 분할", "지면 · 기기 · 연령 · 성별, 행사 기간 시간대별, 다이내믹 소재 요소", "단면 · 광고 아래", "매일 저장"],
+      ["메타 설정 스냅샷", "계정 상태 · 한도, 캠페인 · 광고세트 · 광고의 상태 · 예산 · 입찰 · 일정 · 목표 · 최적화 이벤트 · 기여 설정 · 타겟 · 학습 · 심사 · 연결 주소", "계정 → 광고", "매일"],
+      ["메타 변경 이력(/activities)", "무엇을 · 언제 · 누가 바꿨나(예산 · 입찰 · 타겟 · 상태 · 일정 · 소재 · 심사 · 결제)", "계정 → 광고", "매일"],
+      ["메타 픽셀 이벤트 수", "이벤트별 수, 서버 · 브라우저별 수", "자사 › 측정 태그", "매일(7일까지만 조회)"],
+      ["웹 점검기", "응답 · 이동 경로 · 꼬리표 · 로딩 · 앱 안 브라우저 화면 · 품절 · 가격 · 쿠폰 · 이벤트 발동 · 첫 화면 캡처", "자사 › 도착 ~ 결제", "매일(행사 기간 수시)"],
+      ["자사몰", "주문 수 · 매출 · 주문 금액, 상품별 매출, 로그인 · 비회원 구매 설정", "자사 › 상품 · 구매 완료", "매일"],
+      ["GA4(있을 때)", "랜딩별 · 단계별 · 기기별 전환", "자사 › 랜딩 ~ 구매 완료", "주 1회"],
+      ["직접 운영하는 광고주 묶음", "같은 업종의 일별 · 주별 ROAS · CPM", "시장 › 업종 흐름", "매일"],
+      ["검색 수요", "네이버 데이터랩 · 구글 트렌드", "시장 › 수요 상황", "주 1회"],
+      ["메타 상태 · 공지, 광고 라이브러리", "장애 · 정책 변경, 경쟁사 광고", "시장 › 플랫폼 · 경쟁 상황", "매일 · 주 1회(화면 확인)"]
+    ],
+    fields: {
+      ok: "광고세트 필드(학습 · 기여 설정 · 상태 · 예산 · 입찰 · 일정 · 타겟 · 최적화), 성과 필드와 분할(지면 · 기기 · 연령 · 성별 · 시간대 · 소재 요소), 변경 이력 이벤트 종류, 픽셀 이벤트 수(서버 · 브라우저 구분, 7일 한도) — 2026-10-23 메타 개발자 문서로 확인",
+      todo: "광고 단위 품질 순위 3종, 맞춤 오디언스 크기 · 상태, 카탈로그 상품 상태 필드",
+      warn: "광고비 · 도달 · 빈도는 추정값이다. iOS 14.5 캠페인과 아닌 캠페인의 구매 지표는 합쳐 받을 수 없다. 기본 기여 설정 설명이 문서마다 달라 광고세트 값을 직접 읽는다."
+    }
+  }
+};
+
+</script>
+<script>
+// 점검 항목 정본. [노드, 리듬(D 데일리 · W 위클리), 질문, 보는 곳, 이상 신호, 할 일, 판정 기준, 필드 확인 필요?]
+// 판정 기준 — 데일리: 규칙 · 어제 · 평소 · 몰림 / 위클리: 숫자 · 주째 · 같이 · 비중 · 닳음 · 비교
+window.ROAS_CHECKS = [
+  // ── 신호판 (지표)
+  ["G", "D", "정말 떨어졌나?", "매일 저장한 전일 값 — 오늘 본 어제 값 vs 지난주에 본 그 전날 값(같은 시차)", "같은 시차로 비교해도 낮다", "낮으면 위치 찾기 시작. 비슷하면 전환이 늦게 잡히는 중이니 하루 더 지켜본다", "어제"],
+  ["G", "D", "표본이 충분한가?", "어제 구매 수 · 앞 기간 하루 구매 수", "구매가 하루 20건 미만이라 하루 변화가 잡음일 수 있다", "3~7일을 묶어 앞 기간과 다시 비교하고, 그래도 낮을 때만 이상으로 본다", "평소"],
+  ["G", "D", "어느 숫자가 끌어내렸나?", "메타 어제 값 vs 평소: 노출 단가(CPM) · 클릭률(CTR) · 구매 전환율 · 객단가", "넷 중 하나가 크게 움직였다", "아래 '어디부터 볼까'에 따라 레이어를 고른다", "몰림"],
+  ["G", "D", "업종도 같이 떨어졌나?", "직접 운영하는 같은 업종 광고주들의 어제 ROAS", "대부분 같이 떨어졌다", "시장 레이어부터. 안쪽 점검은 가볍게", "몰림"],
+  ["G", "D", "자사몰 전체도 떨어졌나?", "자사몰 전체 매출 vs 메타 기여 매출", "자사몰은 그대로, 메타만 크게 떨어졌다 / 둘 다 떨어졌다", "메타만이면 매체 레이어, 둘 다면 자사 레이어(웹 상태)부터", "몰림"],
+  ["G", "W", "몇 주째인가?", "ROAS와 네 숫자의 주별 추이", "몇 주째 같은 방향으로 내려간다", "일시적이면 지켜보고, 이어지면 원인 읽기로", "주째"],
+  ["G", "W", "급한 사고를 빼도 떨어졌나?", "이번 주 데일리 알림 기록(품절 · 꺼짐 같은 사고가 난 날)", "사고 난 날을 빼도 하락이 남는다", "남으면 방향 문제. 안 남으면 데일리에서 이미 끝난 일", "숫자"],
+  ["G", "W", "어느 숫자가 얼마나 끌어내렸나?", "주별 네 숫자의 변화를 ROAS 변화에 대한 몫으로 나눔", "한 숫자의 몫이 가장 크다", "그 숫자에서 원인 읽기를 시작한다", "숫자"],
+
+  // ── 시장 · 거시
+  ["S1", "D", "오늘이 평소와 다른 날인가?", "공휴일 · 쇼핑 대목 · 월급날 · 광고주 행사 달력", "연휴 다음 날, 대목 직후, 행사 끝난 날", "비교하는 날을 같은 성격의 날로 바꾼다", "규칙"],
+  ["S1", "W", "시즌 곡선의 어디쯤인가?", "전년 같은 주 매출 · ROAS", "작년에도 이맘때 내려갔다", "시즌 끝물이면 목표 조정 협의, 다음 시즌 상품 준비", "주째"],
+  ["S2", "W", "찾는 사람이 줄었나?", "네이버 데이터랩 · 구글 트렌드의 카테고리 · 브랜드 검색량", "몇 주째 검색량이 줄고 있다", "수요가 남은 상품으로 옮기고 목표 조정을 협의한다", "주째"],
+  ["S3", "W", "광고 자리가 비싸졌나?", "우리 계정 CPM 추세 vs 같은 업종 CPM", "CPM만 오르고 클릭률 · 전환율은 그대로", "효율 좋은 캠페인 · 광고세트로 모으고, 무리하게 바꾸지 않는다", "같이"],
+  ["S3", "W", "경쟁사가 세게 나왔나?", "메타 광고 라이브러리 화면, 경쟁사 사이트(국내 일반 광고는 API로 받기 어려움)", "더 큰 할인, 같은 상품의 새 소재", "혜택 · 소재 대응을 광고주와 협의한다", "비교"],
+  ["S4", "D", "같은 업종도 어제 같이 떨어졌나?", "직접 운영하는 같은 업종 광고주의 어제 ROAS", "대부분 같이 떨어졌다", "시장 · 플랫폼 원인으로 보고 우리 계정만의 문제부터 걸러 낸다", "몰림"],
+  ["S4", "W", "업종 흐름과 같은 방향인가?", "같은 업종 광고주의 주별 ROAS · CPM", "업종 전체가 같이 꺾였다", "우리만의 문제가 아니면 목표 · 기대치를 함께 조정한다", "주째"],
+  ["S5", "D", "메타에 장애 · 지연이 있나?", "메타 상태 페이지 · 비즈니스 공지", "장애 · 리포팅 지연 공지", "공지가 풀릴 때까지 지켜보고 설정은 건드리지 않는다", "규칙"],
+  ["S5", "W", "메타가 뭔가 바꿨나?", "메타 정책 · 기능 변경 공지(기여 · 자동 캠페인 · 지면)", "바뀐 시점과 흐름이 꺾인 시점이 겹친다", "바뀐 기능에 맞춰 설정을 다시 본다", "같이"],
+
+  // ── 자사 · 웹 상태
+  ["J1", "D", "사이트가 살아 있나?", "메인 · 장바구니 · 결제 주소의 응답", "다 같이 열리지 않는다", "사이트 장애. 광고주에게 바로 알리고 메타 광고 전체 일시 중지를 검토한다", "규칙"],
+  ["J1", "D", "광고 주소가 열리나?", "광고에 걸린 모든 URL의 응답 코드", "200이 아니다(404 · 500)", "그 주소로 보내는 광고를 끄거나 주소를 바꾸고 광고주에게 알린다", "규칙"],
+  ["J1", "D", "엉뚱한 곳으로 가나?", "리다이렉트 경로 · 최종 주소", "메인으로 튕긴다, 다른 상품으로 간다, 어제와 다른 주소로 간다", "광고의 연결 주소나 사이트 이동 설정을 고친다", "규칙"],
+  ["J1", "D", "꼬리표가 남나?", "최종 주소의 UTM · fbclid", "가는 도중에 사라진다", "사이트 이동 설정 수정을 요청한다(성과가 메타로 안 잡힌다)", "규칙"],
+  ["J1", "D", "클릭한 사람이 페이지까지 오나?", "메타 링크 클릭 vs 랜딩 페이지 조회", "비율이 평소보다 뚝 떨어졌다", "페이지가 늦게 뜨거나 막힌다. 랜딩 속도부터 본다", "평소"],
+  ["J2", "D", "빨리 뜨나?", "점검기가 잰 휴대폰 로딩 시간", "평소보다 크게 느리다", "무거운 이미지 · 스크립트 확인을 광고주에게 요청한다", "평소"],
+  ["J2", "D", "인스타 · 페이스북 앱 안에서도 제대로 뜨나?", "앱 안 브라우저로 열어 본 화면", "화면 깨짐, 팝업 막힘, 로그인 반복", "광고주 개발 쪽에 수정을 요청한다(메타 유입 대부분이 앱 안 브라우저)", "규칙"],
+  ["J2", "D", "행사가 아직 하나?", "기획전 · 이벤트 페이지의 종료 표시", "끝난 행사 페이지로 보내고 있다", "광고를 끄거나 상시 페이지로 바꾼다", "규칙"],
+  ["J2", "D", "소재에서 말한 혜택이 페이지에 있나?", "소재 문구 vs 페이지 첫 화면", "소재엔 '30%', 페이지엔 없다", "소재 문구를 고치거나 광고주에게 혜택을 확인한다", "규칙"],
+  ["J2", "W", "소재와 같은 이야기를 하나?", "지출 상위 소재 vs 랜딩 첫 화면 캡처", "소재는 바뀌었는데 랜딩은 그대로", "랜딩 첫 화면 개선을 제안한다", "비교"],
+  ["J2", "W", "점점 느려지나?", "휴대폰 로딩 시간의 주별 추이", "몇 주째 느려진다", "사이트 속도 개선을 제안한다", "주째"],
+  ["J3", "D", "살 수 있나?", "품절 · 일시품절 표시, 옵션 선택", "주력 상품 · 인기 옵션 품절", "그 상품 광고를 끄거나 다른 색상 · 상품으로 바꾸고 재입고 일정을 확인한다", "규칙"],
+  ["J3", "D", "가격 · 쿠폰이 바뀌었나?", "페이지 가격 · 쿠폰 표시(어제 저장본과 비교)", "가격이 올랐다, 쿠폰이 사라졌다", "광고주에게 확인하고 소재 문구를 맞춘다", "어제"],
+  ["J3", "D", "카탈로그와 사이트가 맞나?", "메타 카탈로그의 상품 상태 vs 실제 페이지", "거부된 주력 상품, 품절인데 노출되는 상품", "피드를 고친다", "규칙", true],
+  ["J3", "W", "혜택이 약해졌나?", "가격 · 쿠폰 저장본의 주간 변화", "혜택이 약해진 때와 전환율이 꺾인 때가 겹친다", "혜택을 광고주와 협의한다", "같이"],
+  ["J3", "W", "싼 상품으로 쏠렸나?", "자사몰 상품별 매출 · 객단가", "저가 상품 비중이 늘며 객단가가 내려갔다", "세트 · 주력 상품 노출을 조정한다", "비중"],
+  ["J4", "D", "장바구니에 담기나?", "메타 이벤트: 상품 조회 → 장바구니 비율", "평소보다 뚝 떨어졌다", "담기 버튼 · 옵션 오류를 광고주에게 확인한다", "평소"],
+  ["J4", "D", "로그인에 막히나?", "비회원 구매 가능 여부, 로그인 강제 여부", "어제와 달라졌다", "광고주에게 바뀐 이유를 확인한다", "어제"],
+  ["J5", "D", "결제가 되나?", "메타 이벤트: 결제 시작 → 구매 비율", "평소보다 뚝 떨어졌다", "결제 오류. 광고주에게 바로 알리고 결제 수단별로 확인한다", "평소"],
+  ["J5", "D", "앱 안에서 간편결제로 넘어가나?", "앱 안 브라우저에서 카카오페이 · 네이버페이 등 결제 앱 전환(점검기는 결제 직전까지만)", "결제 앱으로 넘어가지 않는다", "광고주 결제 · 개발 쪽 확인을 요청한다", "규칙"],
+  ["J5", "W", "어느 단계가 계속 나빠지나?", "메타 이벤트(또는 GA4) 단계별 비율의 주별 추이", "한 단계가 몇 주째 나빠진다", "그 단계 개선을 제안한다", "주째"],
+  ["J6", "D", "구매가 잡히나?", "자사몰 주문 수 vs 메타 구매 수, 결제 시작 → 구매 비율", "주문은 있는데 메타 구매 0 / 결제 시작까지는 평소인데 구매만 크게 줄었다(일부 기기 · 페이지만 끊길 수 있다)", "측정 복구를 요청한다. 예산 · 소재는 건드리지 않는다(학습만 흔들린다)", "규칙"],
+  ["J6", "D", "구매 금액이 맞나?", "메타 구매 이벤트의 금액 · 통화 vs 실제 주문 금액", "0원, 통화 오류, 금액 두 배", "태그를 고친다", "규칙"],
+  ["J6", "W", "측정이 조금씩 새나?", "자사몰 주문 대비 메타 구매 비율의 주별 추이", "몇 주째 줄어든다", "측정 점검을 요청한다", "주째"],
+  ["JT", "D", "이벤트가 나가나?", "페이지를 띄워 메타로 가는 이벤트 요청 확인(PageView · ViewContent · AddToCart · InitiateCheckout · Purchase)", "안 나간다, 두 번 나간다", "태그를 고친다", "규칙"],
+  ["JT", "D", "이벤트 수가 그대로인가?", "이벤트 관리자 › 데이터 세트 › 개요의 이벤트별 수(구매 이벤트 추이)", "구매 이벤트가 갑자기 줄거나 0", "태그 · 사이트 변경을 확인한다", "평소"],
+  ["JT", "D", "서버 이벤트가 살아 있나?", "이벤트 관리자 개요의 브라우저 · 서버 이벤트 구분", "서버 이벤트가 끊겼다, 비중이 확 바뀌었다", "전환 API 연동을 확인한다", "평소"],
+  ["JT", "D", "사이트 · 태그를 바꿨나?", "개발 쪽 배포 · 페이지 개편 공지(주문 완료 · 결제 페이지), GTM 게시 이력(연결돼 있을 때)", "측정이 끊긴 시점과 사이트 변경 시점이 겹친다", "측정 이상이 있으면 그 변경부터 본다. 개발 쪽에 구매 이벤트 확인을 요청한다", "어제"],
+
+  // ── 매체 · 메타
+  ["M1", "D", "계정이 살아 있나?", "광고 계정 상태 · 계정 품질(비활성 · 제한 사유)", "비활성", "바로 광고주 · 메타에 문의한다", "규칙"],
+  ["M1", "D", "결제가 됐나?", "변경 이력의 결제 실패 · 결제 수단 제거", "결제 실패", "결제 수단을 확인한다", "규칙"],
+  ["M1", "D", "내일도 돌 수 있나?", "지출 한도 남은 금액 vs 하루 소진액", "남은 한도가 하루치보다 적다", "한도 증액을 요청한다", "규칙"],
+  ["M1", "D", "오디언스가 살아 있나?", "리타겟 · 제외 오디언스 크기 · 갱신 상태", "비었다, 갱신이 멈췄다", "오디언스 원본 연결을 확인한다", "규칙", true],
+  ["M1", "D", "누가 무엇을 바꿨나?", "기록(변경 내역) — 무엇을 · 언제 · 누가 바꿨나", "—", "모든 '어제와 다름'에 누가 · 언제를 붙인다", "어제"],
+  ["M1", "W", "효율 낮은 캠페인으로 돈이 옮겨 갔나?", "캠페인별 지출 비중 · ROAS", "각자는 그대로인데 낮은 캠페인 비중이 커졌다", "캠페인 예산을 다시 나눈다", "비중"],
+  ["M2", "D", "켜질 때 켜지고 꺼질 때 꺼졌나?", "캠페인 상태 vs 행사 일정", "끝난 행사가 켜져 있다, 시작한 행사가 꺼져 있다", "바로잡는다", "규칙"],
+  ["M2", "D", "켜져 있는데 돈이 안 쓰이나?", "캠페인 소진액 vs 상태", "켜져 있는데 소진 0", "반려 · 한도 · 일정 중 무엇이 막았는지 본다", "규칙"],
+  ["M2", "D", "예산 · 한도가 바뀌었나?", "캠페인 예산 · 지출 한도(어제 스냅샷과 비교)", "어제와 다르다", "변경 이력에서 누가 바꿨는지 보고 의도를 확인한다", "어제"],
+  ["M2", "D", "지출을 늘리며 떨어졌나?", "캠페인 지출 vs 앞 기간 하루 평균, 기록(변경 내역)의 예산 증액", "지출이 20% 넘게 늘었는데 ROAS가 떨어졌다", "증액 시점 · 폭을 확인하고, 되돌린다면 한 번에 20% 안쪽으로 정한다", "어제"],
+  ["M2", "D", "목표가 바뀌었나?", "캠페인 목표", "어제와 다르다", "의도를 확인한다", "어제"],
+  ["M2", "W", "광고세트 사이로 돈이 옮겨 갔나?", "광고세트별 지출 비중 · ROAS, 변경 이력", "효율 낮은 광고세트 비중이 커졌다", "사람이 바꾼 건지 메타가 옮긴 건지 가르고 예산을 조정한다", "비중"],
+  ["M2", "W", "너무 쪼개졌나?", "광고세트 수, 광고세트당 주간 구매 수", "광고세트는 늘고 각자의 구매는 줄었다", "광고세트를 합친다", "주째"],
+  ["M3", "D", "일정이 행사와 맞나?", "광고세트 시작 · 종료 시각", "행사가 시작됐는데 시작 전, 끝났는데 켜져 있다", "바로잡는다", "규칙"],
+  ["M3", "D", "예산이 제대로 쓰이나?", "소진액 vs 일예산 · 남은 예산", "이른 시각에 다 썼다 / 거의 못 썼다", "입찰 · 타겟 · 소재 쪽 막힘을 본다", "규칙"],
+  ["M3", "D", "예산 · 입찰이 바뀌었나?", "일예산 · 총예산 · 입찰 방식 · 입찰가", "어제와 다르다", "누가 바꿨는지 보고 의도를 확인한다", "어제"],
+  ["M3", "D", "무엇을 목표로 돌고 있나?", "광고세트의 최적화 이벤트(전환 위치 · 이벤트)", "구매가 아닌 다른 이벤트로 바뀌었다", "되돌린다", "어제"],
+  ["M3", "D", "성과를 세는 방식이 바뀌었나?", "광고세트의 기여 설정(클릭 후 · 조회 후 기간)", "어제와 다르다", "ROAS가 '보이는 값'만 바뀐 것. 같은 설정으로 다시 비교한다", "어제"],
+  ["M3", "D", "타겟 · 제외가 그대로인가?", "타겟 설정(제외 오디언스 포함)", "구매자 제외가 빠졌다, 오디언스가 바뀌었다", "되돌린다", "어제"],
+  ["M3", "D", "학습이 다시 시작됐나?", "광고세트 게재 열의 학습 단계(학습 중 · 활성 · 학습 제한)", "학습 완료 → 학습 중, 같은 날 큰 변경", "추가 변경을 멈추고 지켜본다", "어제"],
+  ["M3", "W", "타겟이 좁아졌나?", "주별 도달 vs 광고비 · 빈도", "광고비는 느는데 도달은 그대로, 빈도는 오른다", "유사 타겟을 넓히고 리타겟 범위를 조정한다", "같이"],
+  ["M3", "W", "광고세트끼리 부딪히나?", "같은 오디언스를 쓰는 광고세트 수", "겹침이 늘며 CPM이 오른다", "겹치는 광고세트를 합친다", "같이"],
+  ["M3", "W", "학습이 잘 안 끝나나?", "학습 제한 광고세트 비중의 주별 추이", "몇 주째 늘어난다", "구조를 단순하게 한다", "주째"],
+  ["M3", "W", "효율 소재가 밀려났나?", "광고별 지출 비중 · ROAS", "잘 되던 소재의 비중이 줄었다", "효율 소재를 따로 빼서 예산을 보장한다", "비중"],
+  ["M4", "D", "잘 되던 광고가 꺼졌나?", "광고 상태(지난주 매출 상위 소재부터)", "꺼졌다", "누가 껐는지 보고 다시 켤지 정한다", "규칙"],
+  ["M4", "D", "반려 · 제한됐나?", "광고 게재 열의 반려 · 제한 표시와 사유", "반려 · 게재 제한", "소재를 고쳐 다시 심사받는다", "규칙"],
+  ["M4", "D", "연결 주소가 바뀌었나?", "소재의 링크 URL", "어제와 다르다", "자사 웹 상태 점검 목록을 새 주소로 바꾼다", "어제"],
+  ["M4", "W", "소재가 닳았나?", "소재별 클릭률 · 빈도 · 전환율을 그 소재의 첫 주들과 비교", "클릭률은 계속 내려가고 빈도는 계속 오른다", "새 소재를 넣고 닳은 소재 비중을 줄인다", "닳음"],
+  ["M4", "W", "메타 평가가 떨어지나?", "광고 단위 품질 · 참여 · 전환 순위", "몇 주째 평균 아래로 내려간다", "소재를 바꾼다", "주째", true],
+  ["M4", "W", "묶음 소재 안에서 무엇이 닳았나?", "다이내믹 소재 요소 분할(이미지 · 문구 · 제목)", "한 요소만 계속 나빠진다", "그 요소만 바꾼다", "닳음"],
+  ["MX", "D", "특정 지면 · 기기에 몰렸나?", "지면 · 기기별 잃은 매출", "한 지면 · 기기가 대부분이다", "그 지면이면 지면 설정을, 그 기기면 자사 웹 상태를 본다", "몰림"],
+  ["MX", "W", "효율 낮은 지면 · 연령층으로 옮겨 갔나?", "지면 · 기기 · 연령 · 성별별 지출 비중 · ROAS", "효율 낮은 곳 비중이 커졌다", "지면 · 타겟 설정을 조정한다", "비중"],
+  ["MX", "W", "소구점이 닳았나?", "소재 이름 · 태그로 묶은 소구점별 성과", "주력 소구점이 계속 내려가고 새 소구점이 없다", "새 소구점 테스트를 넣는다", "닳음"]
+];
+
+</script>
+<script>
+(function () {
+  const D = window.ROAS_DATA;
+  const CHECKS = window.ROAS_CHECKS.map(([node, r, q, where, bad, todo, basis, flag]) => ({ node, r, q, where, bad, todo, basis, flag: !!flag }));
+  const L = Object.fromEntries(D.layers.map(l => [l.id, l]));
+  const NODE = {};
+  D.layers.forEach(l => {
+    l.nodes.forEach(n => { NODE[n.id] = { ...n, layer: l }; });
+    if (l.rail) NODE[l.rail.id] = { ...l.rail, layer: l };
+    if (l.cross) NODE[l.cross.id] = { ...l.cross, layer: l };
+  });
+  NODE.G = { id: "G", name: "신호판", layer: { id: "G", name: "신호판" } };
+  const state = { rhythm: "all", J: "J1", M: "M1", demo: 0 };
+
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const of = (node, r) => CHECKS.filter(c => c.node === node && (!r || c.r === r));
+  const shown = r => state.rhythm === "all" || state.rhythm === r;
+
+  function seg(box, opts, get, set) {
+    box.innerHTML = "";
+    opts.forEach(o => {
+      const b = document.createElement("button");
+      b.textContent = o.label;
+      b.setAttribute("aria-pressed", String(get() === o.id));
+      b.addEventListener("click", () => { set(o.id); seg(box, opts, get, set); });
+      box.appendChild(b);
+    });
+  }
+
+  // ── 점검 카드
+  function card(c) {
+    const b = D.basis[c.basis];
+    return `<div class="chk"><div class="top"><div class="q">${esc(c.q)}</div><span class="basis" title="${esc(b.desc)}">${esc(b.name)}</span></div>
+      <dl><dt>보는 곳</dt><dd>${esc(c.where)}</dd><dt>이상 신호</dt><dd>${esc(c.bad)}</dd><dt>할 일</dt><dd class="do">${esc(c.todo)}</dd></dl>
+      ${c.flag ? '<div class="flag">메타 필드 이름 확인 필요</div>' : ""}</div>`;
+  }
+  function columns(node) {
+    const rs = ["D", "W"].filter(shown);
+    return `<div class="cols ${rs.length === 1 ? "one" : ""}">` + rs.map(r => {
+      const list = of(node, r);
+      return `<div><div class="col-head ${r}"><b>${D.rhythms[r].name}</b><span class="muted small">${D.rhythms[r].sub}</span></div>
+        ${list.length ? list.map(card).join("") : `<div class="none">${r === "D" ? "매일 볼 고정값이 없는 자리" : "매주 볼 흐름이 없는 자리"}</div>`}</div>`;
+    }).join("") + "</div>";
+  }
+  function counts(node) {
+    return ["D", "W"].filter(shown).map(r => `<span class="n ${r}">${D.rhythms[r].name} ${of(node, r).length}</span>`).join(" ");
+  }
+  function panel(boxId, node) {
+    const n = NODE[node];
+    const where = n.layer.id === "G" ? "신호판" : `${n.layer.name} › ${n.name}`;
+    $(boxId).innerHTML = `<div class="panel-head"><h3>${esc(where)}</h3>${n.hint ? `<span class="muted small">${esc(n.hint)}</span>` : ""}</div>${columns(node)}`;
+  }
+
+  // ── 한눈에
+  function renderGlance() {
+    const chipLinks = (l, href) => l.nodes.map(n => `<a class="chip" href="${href}" data-node="${n.id}">${esc(n.name)}</a>`).join("") +
+      (l.rail ? `<a class="chip" href="${href}" data-node="${l.rail.id}">${esc(l.rail.name)}</a>` : "") +
+      (l.cross ? `<a class="chip" href="${href}" data-node="${l.cross.id}">${esc(l.cross.name)}</a>` : "");
+    const head = l => `<div class="nest-head"><b>${l.name}</b><span class="tag ${l.id}">${l.lens}</span><span class="q">${esc(l.ask)}</span><span class="shape">여기가 원인이면 — ${esc(l.shape)}</span></div>`;
+    const S = L.S, J = L.J, M = L.M;
+    $("#glance-box").innerHTML = `
+      <div class="flow-top"><a class="card" href="#signal" style="text-decoration:none;color:inherit"><b>① 신호판</b> — 정말 떨어졌나 · 어느 숫자가 끌어내렸나 · 업종도? 자사몰도?</a></div>
+      <div class="arrow-down">② 바깥에서 안으로 원인 자리를 찾는다 ↓</div>
+      <div class="nest">${head(S)}<span class="outer-note">가장 바깥</span><div class="chips">${chipLinks(S, "#market")}</div>
+        <div class="in J">${head(J)}<div class="chips">${chipLinks(J, "#own")}</div>
+          <div class="in M">${head(M)}<div class="chips">${chipLinks(M, "#media")}</div></div>
+        </div>
+      </div>
+      <div class="arrow-down">③ 찾은 자리에서 ↓</div>
+      <div class="flow-bottom">${["D", "W"].map(r => `<div class="card"><span class="tag ${r}">${D.rhythms[r].name}</span> <b>${D.rhythms[r].sub}</b>
+        <p class="muted small" style="margin:6px 0 0">${D.rhythms[r].when} → <b style="color:var(--text)">${D.rhythms[r].out}</b></p></div>`).join("")}</div>`;
+    document.querySelectorAll("#glance-box a.chip").forEach(a => a.addEventListener("click", () => {
+      const id = a.dataset.node, lay = id[0];
+      if (lay === "J" || lay === "M") { state[lay] = id; lay === "J" ? renderOwn() : renderMedia(); }
+    }));
+  }
+
+  // ── 신호판
+  function renderSignal() {
+    $("#tiles").innerHTML = D.tiles.map(t => `<div class="card tile"><span class="k">${esc(t.k)}</span><span class="dir">${t.dir}</span>
+      <div class="why">${esc(t.why)}</div><div class="to">어디부터 → ${esc(t.to)}</div></div>`).join("");
+    panel("#panel-G", "G");
+  }
+
+  // ── 시장
+  function renderMarket() {
+    const S = L.S;
+    $("#market-sub").innerHTML = `${esc(S.ask)} — 가장 바깥 레이어. 대부분 위클리로 보고, 데일리에는 '오늘이 특별한 날인지 · 다 같이 떨어졌는지 · 메타에 장애가 있는지'만 본다.`;
+    $("#macro").innerHTML = S.nodes.map(n => {
+      const list = CHECKS.filter(c => c.node === n.id && shown(c.r));
+      return `<div class="card"><h3>${esc(n.name)}</h3><p class="muted small">${esc(n.hint)}</p>
+        ${list.map(c => `<div style="margin-top:8px"><span class="tag ${c.r}">${D.rhythms[c.r].name}</span></div>${card(c)}`).join("") || '<div class="none">이 보기에는 점검이 없다</div>'}</div>`;
+    }).join("");
+  }
+
+  // ── 자사 · 웹 상태
+  function renderOwn() {
+    const J = L.J;
+    $("#own-sub").innerHTML = `${esc(J.ask)} — 손님이 지나는 자리마다 '열리나 · 살 수 있나 · 잡히나'를 본다. 자리를 누르면 아래에 점검이 열린다.`;
+    $("#path").innerHTML = J.nodes.map(n => `<div class="stop"><button aria-pressed="${state.J === n.id}" data-id="${n.id}">
+      <span class="nm">${esc(n.name)}</span><span class="hint">${esc(n.hint)}</span><span class="cnt">${counts(n.id)}</span></button>
+      <div class="ev">${esc(n.event)}</div></div>`).join("");
+    $("#rail").innerHTML = `<button aria-pressed="${state.J === J.rail.id}" data-id="${J.rail.id}"><b>${esc(J.rail.name)}</b> <span class="muted small">— ${esc(J.rail.hint)}</span> <span class="cnt">${counts(J.rail.id)}</span></button>`;
+    document.querySelectorAll("#path button, #rail button").forEach(b => b.addEventListener("click", () => { state.J = b.dataset.id; renderOwn(); }));
+    panel("#panel-J", state.J);
+  }
+
+  // ── 매체 · 메타 구조
+  function renderMedia() {
+    const M = L.M;
+    $("#media-sub").innerHTML = `${esc(M.ask)} — 위에서 아래로 갈수록 개수가 많아진다. 원인 자리는 잃은 매출이 몰린 쪽으로 내려가며 찾는다.`;
+    $("#tree").innerHTML = M.nodes.map((n, k) => `<div class="tnode ${k === 0 ? "one" : k >= 2 ? "lots" : ""}"><button aria-pressed="${state.M === n.id}" data-id="${n.id}">
+      <span class="many">${esc(n.many)}</span><span class="nm">${esc(n.name)}</span><span class="hint">${esc(n.hint)}</span><span class="cnt">${counts(n.id)}</span></button></div>`).join("");
+    $("#crossbar").innerHTML = `<button aria-pressed="${state.M === M.cross.id}" data-id="${M.cross.id}"><b>${esc(M.cross.name)}</b> <span class="muted small">— ${esc(M.cross.hint)}</span> <span class="cnt">${counts(M.cross.id)}</span></button>`;
+    $("#ghost").textContent = `지금은 ${M.now}. ${M.later.join(" · ")}도 같은 모양(계정 → 캠페인 → 광고 묶음 → 광고)으로 옆에 붙는다.`;
+    document.querySelectorAll("#tree button, #crossbar button").forEach(b => b.addEventListener("click", () => { state.M = b.dataset.id; renderMedia(); }));
+    panel("#panel-M", state.M);
+  }
+
+  // ── 예시
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.appendChild(n); return n; }
+  function tx(p, x, y, s, cls, anchor) { const t = el("text", { x, y, class: cls || "", "text-anchor": anchor || "start" }, p); t.textContent = s; return t; }
+  const TRAIL = [["start", "정말 떨어졌나"], ["market", "시장"], ["own", "자사"], ["acc", "계정 → 캠페인"], ["B", "캠페인 → 광고세트"], ["found", "원인 자리"]];
+  function renderDemo() {
+    const st = D.demo.steps[state.demo], at = st.at, idx = TRAIL.findIndex(t => t[0] === at);
+    $("#trail").innerHTML = TRAIL.map((t, k) => `<span class="${k === idx ? "on" : k < idx ? "done" : ""}">${k < idx ? "✓ " : ""}${t[1]}</span>`).join("");
+    const svg = $("#demo-svg"); svg.innerHTML = "";
+    const T = D.demo.tree;
+    const box = { acc: { x: 390, y: 8, w: 220 } };
+    const cx = [40, 385, 730];
+    T.camps.forEach((c, i) => {
+      box[c.k] = { x: cx[i], y: 118, w: 230, d: c };
+      c.sets.forEach((s, j) => { box[s[0]] = { x: cx[i] - 30 + j * 165, y: 238, w: 150, s }; });
+    });
+    const H = 58, mid = b => b.x + b.w / 2;
+    T.camps.forEach(c => {
+      el("path", { d: `M${mid(box.acc)},${box.acc.y + H} C${mid(box.acc)},${box.acc.y + H + 26} ${mid(box[c.k])},${box[c.k].y - 26} ${mid(box[c.k])},${box[c.k].y}`, class: "edge" }, svg);
+      c.sets.forEach(s => el("path", { d: `M${mid(box[c.k])},${box[c.k].y + H} C${mid(box[c.k])},${box[c.k].y + H + 26} ${mid(box[s[0]])},${box[s[0]].y - 26} ${mid(box[s[0]])},${box[s[0]].y}`, class: "edge" }, svg));
+    });
+    const look = {
+      start: { focus: ["acc"] }, market: {}, own: {},
+      acc: { focus: ["acc"], hot: ["B"], calm: ["A", "C"], bars: ["A", "B", "C"] },
+      B: { focus: ["B"], hot: ["B-1 · 신규", "B-2 · 관심사"], calm: ["A", "C", "A-1", "A-2", "C-1"], bars: ["B-1 · 신규", "B-2 · 관심사"] },
+      found: { hot: ["B"], calm: ["A", "C", "A-1", "A-2", "C-1", "B-1 · 신규", "B-2 · 관심사"] }
+    }[at];
+    const has = (k, key) => (look[key] || []).includes(k);
+    Object.keys(box).forEach(k => {
+      const b = box[k];
+      const title = k === "acc" ? T.acc.t : b.d ? b.d.t : b.s[0];
+      const sub = k === "acc" ? T.acc.v : b.d ? b.d.v : b.s[1];
+      const share = b.d ? b.d.share : b.s ? b.s[2] : null;
+      const g = el("g", { class: ["tn", has(k, "focus") && "focus", has(k, "hot") && "hot", has(k, "calm") && "calm"].filter(Boolean).join(" ") }, svg);
+      el("rect", { x: b.x, y: b.y, width: b.w, height: H, rx: 10, class: "body" }, g);
+      tx(g, b.x + 10, b.y + 22, title);
+      tx(g, b.x + 10, b.y + 40, sub, "v");
+      if (has(k, "bars") && share != null) {
+        el("rect", { x: b.x + 10, y: b.y + 47, width: b.w - 20, height: 5, rx: 2.5, class: "share-bg" }, g);
+        el("rect", { x: b.x + 10, y: b.y + 47, width: (b.w - 20) * share / 100, height: 5, rx: 2.5, class: "share" }, g);
+        tx(g, b.x + b.w - 10, b.y + 22, `몫 ${share}%`, "v", "end");
+      }
+    });
+    $("#demo-msg").textContent = st.msg;
+    $("#demo-prev").disabled = state.demo === 0;
+    $("#demo-next").disabled = state.demo === D.demo.steps.length - 1;
+  }
+
+  // ── 알림 · 원인 읽기 · 부록
+  function renderRest() {
+    $("#alert-box").innerHTML = ["D", "W"].map(r => `<div class="card"><span class="tag ${r}">${D.rhythms[r].name}</span><div class="msg" style="margin-top:8px">${D.alerts[r].map(s => `<div>${esc(s)}</div>`).join("")}</div></div>`).join("");
+    $("#pattern-table").innerHTML = `<thead><tr><th>이렇게 읽는다</th><th>같이 움직인 숫자</th><th>원인 자리</th><th>바꿀 방향</th></tr></thead><tbody>` +
+      D.patterns.map(p => `<tr><td data-k="이렇게 읽는다"><b>${esc(p[0])}</b></td><td data-k="같이 움직인 숫자">${esc(p[1])}</td><td data-k="원인 자리">${esc(p[2])}</td><td data-k="바꿀 방향">${esc(p[3])}</td></tr>`).join("") + "</tbody>";
+    const bs = r => Object.values(D.basis).filter(b => b.r === r).map(b => `<li><b>${esc(b.name)}</b> — ${esc(b.desc)}</li>`).join("");
+    $("#basis-box").innerHTML = `<p class="small">업종 · 광고주 표준값이 아직 없다. 그래서 바깥 기준 대신 <b>늘 맞아야 하는 규칙</b>과 <b>그 계정 자신의 기록</b>으로 판정하고, 표준값은 쌓아서 만든다.</p>
+      <div class="basis-grid"><div><span class="tag D">데일리</span><ul class="tight small" style="margin-top:6px">${bs("D")}</ul></div><div><span class="tag W">위클리</span><ul class="tight small" style="margin-top:6px">${bs("W")}</ul></div></div>`;
+    $("#learn").innerHTML = D.appendix.learn.map(s => `<li class="small">${esc(s)}</li>`).join("");
+    $("#illusion-box").innerHTML = D.appendix.illusions.map(i => `<p class="small"><b>${esc(i[0])}</b> — ${esc(i[1])}</p>`).join("");
+    $("#collect-table").innerHTML = `<thead><tr><th>어디서</th><th>무엇을</th><th>쓰는 자리</th><th>얼마나 자주</th></tr></thead><tbody>` +
+      D.appendix.collect.map(c => `<tr><td data-k="어디서"><b>${esc(c[0])}</b></td><td data-k="무엇을">${esc(c[1])}</td><td data-k="쓰는 자리">${esc(c[2])}</td><td data-k="얼마나 자주">${esc(c[3])}</td></tr>`).join("") + "</tbody>";
+    const f = D.appendix.fields;
+    $("#fields").innerHTML = `<p class="small"><b>확인됨</b> — ${esc(f.ok)}</p><p class="small"><b>확인 필요</b> — ${esc(f.todo)}</p><p class="small"><b>주의</b> — ${esc(f.warn)}</p>`;
+  }
+
+  // ── 기능으로 담기
+  function renderProduct() {
+    const P = D.product;
+    $("#product-pitch").textContent = P.pitch;
+    $("#doors").innerHTML = P.doors.map((d, k) => `<div class="card door"><h3>${k + 1}. ${esc(d.name)}</h3>
+      <div class="meta"><span class="chip">${esc(d.where)}</span><span class="chip">${esc(d.who)}</span><span class="chip">${esc(d.when)}</span></div>
+      <dl><dt>하는 일</dt><dd>${esc(d.what)}</dd><dt>왜</dt><dd>${esc(d.why)}</dd><dt>마케터</dt><dd>${esc(d.human)}</dd></dl></div>`).join("");
+    $("#engine").innerHTML = P.engine.map(e => `<div class="eng"><div class="card"><b>${esc(e[0])}</b><div class="who">${esc(e[2])}</div><p class="small" style="margin:4px 0 0">${esc(e[1])}</p></div></div>`).join("");
+    $("#result-table").innerHTML = "<tbody>" + P.result.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join("") + "</tbody>";
+    const st = Object.fromEntries(P.states.map(s => [s.id, s]));
+    $("#board-title").textContent = P.board.title;
+    $("#board").innerHTML = P.board.rows.map(([lid, nodes]) => `<div class="brow"><div class="lname">${esc(L[lid].name)}</div><div class="lights">${nodes.map(([nid, s]) =>
+      `<span class="light ${s}" title="${esc(st[s].name)}"><i></i>${esc(NODE[nid].name)}</span>`).join("")}</div></div>`).join("") +
+      `<ul class="tight small" style="margin-top:10px">${P.board.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` +
+      `<div class="legend-row">${P.states.map(s => `<span class="light ${s.id}"><i></i>${esc(s.name)} <span class="muted">— ${esc(s.desc)}</span></span>`).join("")}</div>`;
+    $("#fit-table").innerHTML = `<thead><tr><th>잡혀 있던 과제</th><th>이 지도의 어느 점검</th><th>관계</th></tr></thead><tbody>` +
+      P.fit.map(f => `<tr><td data-k="잡혀 있던 과제"><b>${esc(f[0])}</b></td><td data-k="이 지도의 어느 점검">${esc(f[1])}</td><td data-k="관계">${esc(f[2])}</td></tr>`).join("") + "</tbody>";
+    $("#phase-table").innerHTML = `<thead><tr><th>단계</th><th>무엇을</th><th>열리는 입구</th></tr></thead><tbody>` +
+      P.phases.map(p => `<tr><td data-k="단계"><b>${esc(p[0])}. ${esc(p[1])}</b></td><td data-k="무엇을">${esc(p[2])}</td><td data-k="열리는 입구">${esc(p[3])}</td></tr>`).join("") + "</tbody>";
+  }
+
+  function initTheme() {
+    let saved = null;
+    try { saved = localStorage.getItem("roas-map-theme"); } catch (e) {}
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+    $("#theme-toggle").addEventListener("click", () => {
+      const cur = document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      const next = cur === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("roas-map-theme", next); } catch (e) {}
+    });
+  }
+
+  function renderAll() { renderSignal(); renderMarket(); renderOwn(); renderMedia(); }
+  seg($("#rhythm-seg"), [{ id: "all", label: "둘 다" }, { id: "D", label: "데일리" }, { id: "W", label: "위클리" }], () => state.rhythm, v => { state.rhythm = v; renderAll(); });
+  renderGlance(); renderAll(); renderDemo(); renderRest(); renderProduct(); initTheme();
+  $("#demo-next").addEventListener("click", () => { if (state.demo < D.demo.steps.length - 1) { state.demo++; renderDemo(); } });
+  $("#demo-prev").addEventListener("click", () => { if (state.demo > 0) { state.demo--; renderDemo(); } });
+  $("#demo-reset").addEventListener("click", () => { state.demo = 0; renderDemo(); });
+})();
+
+</script>
+</body>
+</html>
