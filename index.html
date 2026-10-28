@@ -193,6 +193,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;v
 .psum{margin-top:12px;padding:10px 14px}.psum>summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline}.psum>summary .k{font-weight:800}
 .psum h3{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center}.psum ul{margin:2px 0 6px;padding-left:18px}
 .psum.perr{border:2px solid var(--bad)}
+.linkmsg{margin:12px 0 0;padding:8px 14px;font-size:13px;border-left:4px solid var(--accent);overflow-wrap:anywhere}.linkmsg.bad{border:2px solid var(--bad);border-left-width:6px}
 .otag{font-size:10.5px;font-weight:800;border:1.5px dashed var(--muted);color:var(--muted);border-radius:5px;padding:0 5px;white-space:nowrap}
 .lt.o::after{content:"·";position:absolute;right:-2px;top:-9px;font-size:14px;font-weight:900;color:var(--muted)}
 /* v4.4: 더 보면 좋은 것 · 원인 길 줄 · 연결된 자리 상태 · 같은 열쇠 고르기 · 메모 */
@@ -223,10 +224,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;v
 </defs></svg>
 <div class="wrap">
   <header class="head"><div><h1 id="title"></h1><div class="muted small" id="subtitle"></div><p class="srcl" id="srcline"></p></div><div class="hbtns"><button class="tbtn pbtn" id="paste-btn" type="button" aria-expanded="false" aria-controls="paste">스킬 결과 붙여넣기</button><button class="tbtn" id="theme" type="button" aria-label="화면 밝기 바꾸기">◐ 밝기</button></div></header>
+  <p class="card linkmsg" id="linkmsg" role="status" hidden></p>
   <section class="card paste" id="paste" role="region" aria-labelledby="paste-h" hidden>
     <h2 id="paste-h">스킬 결과 붙여넣기</h2>
     <p class="small muted" style="margin:0 0 6px">Claude 답 맨 끝 <b>'roas' 칸</b> 오른쪽 위 <b>복사 단추</b>를 눌러 여기에 그대로 붙인다(울타리 없이 JSON만이어도 된다). 앞뒤 글이 섞여도 된다. 읽은 결과로 판정 띠 · 이력판 · 할 일 · 빈 곳 · 진행 순서를 다시 그리고, 이 브라우저에만 저장한다(인터넷으로 보내지 않는다).</p>
     <p class="small muted" style="margin:0 0 6px">터미널(Claude Code)에서는 복사 단추가 없다. 스킬에게 <b>"파일로 저장해 줘"</b>라고 해 받은 <code>roas-결과-&lt;광고주&gt;-&lt;날짜&gt;.json</code>을 <b>파일에서 읽기</b>로 열거나 글 상자에 끌어 놓는다. 화면에서 <code>{</code>부터 <code>}</code>까지 끌어 고른 글도 된다(앞 공백 · 줄 끊김 · 오른쪽 창 글은 다듬어 읽는다).</p>
+    <p class="small muted" style="margin:0 0 6px">스킬이 마무리에 준 <b>링크</b>(주소 끝 <code>#r=…</code>)를 열면 붙여넣기 없이 바로 읽고 저장한다. 결과는 주소의 <code>#</code> 뒤에 담겨 서버로 가지 않고, 읽은 뒤 주소에서 지운다. 다만 <b>링크를 남에게 보내면 받는 사람도 그 결과를 본다.</b></p>
     <label class="small" for="paste-ta"><b>결과 블록</b></label>
     <textarea id="paste-ta" rows="8" spellcheck="false" autocomplete="off" placeholder="{&#10;  &quot;형식&quot;: &quot;roas-check/1&quot;,&#10;  &quot;광고주&quot;: &quot;…&quot;, …&#10;}"></textarea>
     <label class="small" for="paste-memo" style="display:block;margin-top:8px"><b>메모</b> <span class="muted">(선택 — 예: 모델 · 대화 주소) · 피드백(선택 — 스킬 결론이 맞았나). 저장 목록에 함께 보이고 거기서 고칠 수 있다</span></label>
@@ -457,7 +460,7 @@ let AC=null;
 // 화면 하나 = boot 한 번(예시 · 붙여 넣은 결과 · 빈 판). 다시 그릴 때 앞 boot의 문서 이벤트를 걷어 낸다
 function boot(R,HIN){if(AC)AC.abort();AC=new AbortController();const SG={signal:AC.signal};
 ['#band','.main','#tabs'].forEach(s=>{$(s).hidden=!R});
-if(!R){$('#title').innerHTML='ROAS 점검 이력판 · 붙여넣기<span class="ver">v4.6</span>';$('#subtitle').textContent='스킬이 낸 결과 블록을 붙여 넣으면 판정 띠 · 이력판 · 할 일 · 진행 순서가 그려진다';document.title='ROAS 점검 이력판 · 붙여넣기';return}
+if(!R){$('#title').innerHTML='ROAS 점검 이력판 · 붙여넣기<span class="ver">v4.7</span>';$('#subtitle').textContent='스킬이 낸 결과 블록을 붙여 넣으면 판정 띠 · 이력판 · 할 일 · 진행 순서가 그려진다';document.title='ROAS 점검 이력판 · 붙여넣기';return}
 const R_=R.rhythm==='weekly'?'W':'D';
 // ── 체크리스트(이번 리듬)와 실행 결과를 맞춘다: 램프 = 체크리스트 항목
 const norm=s=>s.replace(/\s/g,'');
@@ -910,7 +913,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{const m=e.target.closest('[data-memo]');if(!m)return;const l=ALL[+m.dataset.memo];const r=REC[l.key]||{};r.memo=m.value.trim();if(!r.memo&&!r.st)delete REC[l.key];else REC[l.key]=r;l.memo=r.memo||'';save()},SG);
 document.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches('details.fother')){FOTHER=d.open;return}if(d.matches&&d.matches('details.grp')&&!FST.includes(flt)){if(d.open)OPENG.add(d.dataset.g);else OPENG.delete(d.dataset.g);return}if(!(d.matches&&d.matches('details.ck')))return;const l=ALL[+d.dataset.k];if(d.open)OPEN.add(l.key);else OPEN.delete(l.key)},{capture:true,signal:AC.signal});
 function render(){
- $('#title').innerHTML=`ROAS 점검 이력판 · ${esc(R.advertiser)}<span class="ver">v4.6</span>`;
+ $('#title').innerHTML=`ROAS 점검 이력판 · ${esc(R.advertiser)}<span class="ver">v4.7</span>`;
  $('#subtitle').textContent=`${R.medium||'메타'} · ${R.date}${R.pasted?' · '+R.base:''} · ${R_==='D'?'데일리 — 같아야 할 값이 그대로인가':'위클리 — 흐름이 어디서 꺾였나'}`;
  document.title=`ROAS 점검 이력판 · ${R.advertiser} · ${R_==='D'?'데일리':'위클리'}`;
  band();grid();detail();traceP();tabs();bindGo('#tabs');
@@ -978,18 +981,19 @@ function showSum(o){const el=$('#psum');el.hidden=false;
 let PEND=null;
 const memoNow=()=>$('#paste-memo').value.trim(),fbNow=()=>$('#paste-fb').value;
 function hideDup(){const el=$('#paste-dup');el.hidden=true;el.innerHTML='';PEND=null}
-function doRead(){hideDup();$('#psum').hidden=true;const r=readBlock($('#paste-ta').value);
- if(r.err){showSum({err:r.err});$('#psum').focus();say('읽지 못했다: '+r.err);return}
- let R;try{R=fromBlock(r.obj)}catch(e){showSum({err:'결과 블록을 화면 모양으로 바꾸지 못했다 ('+e.message+')'});$('#psum').focus();return}
+// src.link: 링크(#r=)에서 푼 블록 글 — 붙이기와 같은 길로 읽고 저장한다
+function doRead(src){const lk=!!(src&&src.link);hideDup();$('#psum').hidden=true;$('#linkmsg').hidden=true;const r=readBlock(lk?src.text:$('#paste-ta').value);
+ if(r.err){if(lk){linkFail(r.err);return}showSum({err:r.err});$('#psum').focus();say('읽지 못했다: '+r.err);return}
+ let R;try{R=fromBlock(r.obj)}catch(e){if(lk){linkFail('결과 블록을 화면 모양으로 바꾸지 못했다 ('+e.message+')');return}showSum({err:'결과 블록을 화면 모양으로 바꾸지 못했다 ('+e.message+')'});$('#psum').focus();return}
  loadStore();const b=bkey(R),ex=slotsOf(b),same=ex.find(x=>sameBlk(x.e.블록,r.obj));
  // 같은 내용: 저장된 메모 · 피드백은 묻지 않고 바꾸지 않는다(비어 있을 때만 적고 알린다)
  if(same){const e=MEM[same.k],m=memoNow(),fb=fbNow(),xs=[];
   if(m&&m!==(e.메모||'')){if(e.메모)xs.push(`저장된 메모('${esc(e.메모)}')는 그대로 두었다 — 바꾸려면 저장 목록의 메모 칸에서 고친다.`);else{e.메모=m;xs.push('비어 있던 메모를 적었다.')}}
   if(fb&&fb!==(e.피드백||'')){if(e.피드백)xs.push(`저장된 피드백('${esc(e.피드백)}')은 그대로 두었다 — 저장 목록에서 고친다.`);else{e.피드백=fb;xs.push(`피드백 '${esc(fb)}'을 적었다.`)}}
-  saveStore();finishRead(R,r,{k:same.k,n:same.n},'same',xs.join(' '));return}
- if(ex.length){PEND={R,r};showDup(ex);return}
- finishRead(R,r,putEntry(R,r.obj,{memo:memoNow(),fb:fbNow()}),'new')}
-function finishRead(R,r,w,how,extra){const e=MEM[w.k];showPasted(R,e&&e.저장||new Date().toISOString(),w.k);phist();
+  saveStore();finishRead(R,r,{k:same.k,n:same.n},'same',xs.join(' '),lk);return}
+ if(ex.length){PEND={R,r,link:lk};if(lk){openPaste();linkMsg(R,'pend')}showDup(ex);return}
+ finishRead(R,r,putEntry(R,r.obj,{memo:memoNow(),fb:fbNow()}),'new','',lk)}
+function finishRead(R,r,w,how,extra,lk){const e=MEM[w.k];showPasted(R,e&&e.저장||new Date().toISOString(),w.k);phist();if(lk)linkMsg(R,how);
  $('#paste').hidden=true;$('#paste-btn').setAttribute('aria-expanded','false');$('#paste-memo').value='';$('#paste-fb').value='';
  showSum({R,fixes:r.fixes,saved:STORE,how,slot:w.n,outside:r.outside,extra});$('#psum').focus();
  say(`읽었다. 맞춘 자리 ${R.paste.nodes}, 맞춘 점검 ${R.paste.checks}, 못 맞춘 줄 ${R.paste.unmatched.length}, 빠진 필드 ${R.paste.missing.length}. 화면을 다시 그렸다.`)}
@@ -1001,10 +1005,10 @@ function showDup(ex){const R=PEND.R,el=$('#paste-dup');el.hidden=false;
  el.querySelectorAll('[data-dup]').forEach(bt=>bt.onclick=()=>chooseDup(bt.dataset.dup));dupFate();$('#dup-h').focus();say('같은 광고주 · 날짜 · 리듬의 결과가 이미 있다. 바꿔 쓰기 · 따로 남기기 · 그만두기 중에서 고른다')}
 // 고르기 상자의 '바꿔 쓰면 …' 줄: 메모 · 피드백 칸을 고치면 바로 다시 쓴다
 function dupFate(){if(!PEND)return;document.querySelectorAll('#paste-dup [data-fate]').forEach(s=>{const e=MEM[s.dataset.fate];if(e)s.innerHTML=' 바꿔 쓰면: '+fateOf(e,memoNow(),fbNow())})}
-function chooseDup(v){const P=PEND;hideDup();if(!P||v==='cancel'){say('그만뒀다 — 저장하지 않았고 화면도 그대로다');$('#paste-read').focus();return}
+function chooseDup(v){const P=PEND;hideDup();if(!P||v==='cancel'){if(P&&P.link)linkMsg(P.R,'cancel');say('그만뒀다 — 저장하지 않았고 화면도 그대로다');$('#paste-read').focus();return}
  const m=memoNow(),fb=fbNow(),w=v==='new'?putEntry(P.R,P.r.obj,{mode:'new',memo:m,fb}):putEntry(P.R,P.r.obj,{key:v.slice(4),memo:m,fb});
  let extra='';if(w.old){const ch=(m&&m!==(w.old.메모||''))||(fb&&fb!==(w.old.피드백||''));extra=(ch?'<b>메모 · 피드백을 바꿨다</b> — ':'메모 · 피드백은 그대로 이어받았다 — ')+fateOf(w.old,m,fb)+'.'}
- finishRead(P.R,P.r,w,v==='new'?'separate':'replace',extra)}
+ finishRead(P.R,P.r,w,v==='new'?'separate':'replace',extra,P.link)}
 function openEntry(k){const e=MEM[k];if(!e)return false;let R;try{R=fromBlock(e.블록)}catch(x){showSum({err:'저장된 결과를 읽지 못했다'});return false}showPasted(R,e.저장,k);showSum({R,fixes:[],saved:STORE,how:'open',open:false});say(`${R.advertiser} ${R.date} 결과를 열었다`);return true}
 function phist(){if(STORE)loadStore();const es=entries(),el=$('#phist');
  el.innerHTML=`<h3>이 브라우저에 저장한 결과 <span class="muted small">${es.length}개 · 같은 광고주의 지난 결과가 이력판의 지난 칸이 된다</span></h3>
@@ -1046,10 +1050,43 @@ function importText(txt){const P=importPlan(txt);if(P.err){$('#ph-msg').textCont
  <div class="tools"><button class="btn" type="button" data-idup="replace">겹친 ${m}개 바꿔 쓰기</button><button class="btn pri" type="button" data-idup="new">겹친 ${m}개 따로 남기기(같은 날 다음 칸)</button><button class="btn" type="button" data-idup="skip">겹친 것은 건너뛰기</button><button class="btn" type="button" data-idup="cancel">그만두기</button></div>`;
  el.querySelectorAll('[data-idup]').forEach(bt=>bt.onclick=()=>{el.hidden=true;el.innerHTML='';const v=bt.dataset.idup;if(v==='cancel'){$('#ph-msg').textContent='그만뒀다 — 불러오지 않았다';$('#ph-up').focus();return}importDone(importApply(P,v))});
  $('#phdup-h').focus()}
+// ── 스킬 결과 붙여넣기 ④(v4.7): 링크로 들어온 결과 — 주소 #r=1.<crc32 8자리>.<base64url(zlib(블록 JSON))>
+// '#' 뒤는 서버로 가지 않는다. 읽으면(성공 · 실패 모두) 주소에서 지워 새로 고침 · 즐겨찾기에 결과가 남지 않고 두 번 저장되지 않는다
+const LINKBAD='링크가 잘렸거나 바뀌었습니다. 대화의 결과 블록을 복사해 붙여 넣어 주세요.';
+const CRCT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=u=>{let c=~0;for(let i=0;i<u.length;i++)c=CRCT[(c^u[i])&255]^(c>>>8);return ((~c)>>>0).toString(16).padStart(8,'0')};
+const linkErr=why=>Object.assign(new Error(why),{why});
+function linkVal(){const m=String(location.hash||'').match(/^#(?:[^#]*&)?r=([^&]*)/);if(!m)return null;let v=m[1];try{v=decodeURIComponent(v)}catch(e){}return v.trim()}
+function dropHash(){try{history.replaceState(history.state,'',location.pathname+location.search)}catch(e){try{location.hash=''}catch(x){}}}
+async function linkText(v){const p=v.split('.'),ver=p[0];
+ if(!/^\d+$/.test(ver)||p.length<3)throw linkErr('링크 모양이 다르다(형식 판 · 확인 값 · 몸통)');
+ if(ver!=='1')throw linkErr(`이 판이 모르는 형식 판(${ver})이다 — 새 판(최신 주소)에서 연다`);
+ if(!/^[0-9a-f]{8}$/i.test(p[1]))throw linkErr('확인 값(crc32) 자리가 잘렸다');
+ // 메신저가 링크 끝에 붙인 괄호 · 마침표는 떼고 읽는다(맞는지는 crc32가 가린다)
+ const body=(p.slice(2).join('.').match(/^[A-Za-z0-9_-]*/)||[''])[0];if(!body)throw linkErr('몸통이 비어 있다');
+ if(typeof DecompressionStream!=='function')throw linkErr('이 브라우저는 링크를 풀 수 없다(DecompressionStream 없음) — 다른 브라우저로 열거나 붙여 넣는다');
+ let u;try{let s=body.replace(/-/g,'+').replace(/_/g,'/');if(s.length%4===1)throw 0;s+='==='.slice((s.length+3)%4);const bin=atob(s);u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i)}catch(e){throw linkErr('몸통이 잘렸다(base64url)')}
+ // 풀기: 1MB에서 멈춘다(블록은 2,500자 안 — 이상하게 큰 링크를 막는다)
+ const parts=[];let n=0;try{const rd=new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate')).getReader();
+  for(;;){const {done,value}=await rd.read();if(done)break;n+=value.length;if(n>1048576){rd.cancel().catch(()=>{});throw linkErr('풀어 보니 너무 크다')}parts.push(value)}}
+ catch(e){throw e&&e.why?e:linkErr('몸통이 잘렸거나 바뀌었다(풀지 못함)')}
+ const raw=new Uint8Array(n);let o=0;parts.forEach(x=>{raw.set(x,o);o+=x.length});
+ if(crc32(raw)!==p[1].toLowerCase())throw linkErr('확인 값(crc32)이 맞지 않는다');
+ try{return new TextDecoder('utf-8',{fatal:true}).decode(raw)}catch(e){throw linkErr('UTF-8 글이 아니다')}}
+function openPaste(){const p=$('#paste');if(p.hidden){p.hidden=false;$('#paste-btn').setAttribute('aria-expanded','true')}phist()}
+// 링크로 들어왔다는 한 줄(성공 · 고르기 대기 · 그만둠)
+function linkMsg(R,how){const el=$('#linkmsg'),nm=`${R.advertiser} · ${R.date} · ${R.rhythm==='weekly'?'위클리':'데일리'}`;el.hidden=false;el.className='card linkmsg';
+ el.innerHTML=`<b>링크에서 '${esc(nm)}' 결과를 읽었습니다.</b> <span class="muted">${how==='pend'?'같은 광고주 · 날짜 · 리듬의 다른 결과가 이미 있어, 아래에서 고르기 전에는 저장하지 않습니다.':how==='cancel'?'그만둬서 저장하지 않았습니다.':how==='same'?'이미 저장된 결과와 같아 그 칸을 열었습니다.':STORE?'이 브라우저에 저장했고, 주소에서 결과를 지웠습니다.':'이 브라우저는 저장하지 못합니다 — 창을 닫으면 사라집니다.'}</span>`}
+// 읽지 못한 링크: 붙여넣기 칸 위에 알림(좁은 화면에서도 첫 화면에 보이게) · 칸을 열고 글 상자에 초점 · 저장하지 않는다
+function linkFail(why){hideDup();$('#psum').hidden=true;const el=$('#linkmsg');el.hidden=false;el.className='card linkmsg bad';
+ el.innerHTML=`${ic('bad')} <b>${esc(LINKBAD)}</b> <span class="muted">까닭: ${esc(why)} · 아무것도 저장하지 않았습니다.</span>`;openPaste();$('#paste-ta').focus({preventScroll:true});el.scrollIntoView({block:'start'});say(LINKBAD)}
+async function readLink(){const v=linkVal();if(v==null)return false;dropHash();let txt;
+ try{txt=await linkText(v)}catch(e){linkFail(e&&e.why||'링크를 풀지 못했다');return true}
+ doRead({text:txt,link:true});return true}
 function initPaste(){loadStore();$('#paste-fb').innerHTML=fbOpts('').replace('>—<','>고르지 않음<');
  $('#paste-btn').onclick=()=>{const p=$('#paste'),open=p.hidden;p.hidden=!open;$('#paste-btn').setAttribute('aria-expanded',String(open));if(open){phist();$('#paste-ta').focus()}else hideDup()};
  $('#paste-close').onclick=()=>{hideDup();$('#paste').hidden=true;$('#paste-btn').setAttribute('aria-expanded','false');$('#paste-btn').focus()};
- $('#paste-read').onclick=doRead;
+ $('#paste-read').onclick=()=>doRead();
  $('#paste-clear').onclick=()=>{$('#paste-ta').value='';hideDup();$('#paste-ta').focus()};
  // 파일에서 읽기(터미널에서 스킬이 저장한 roas-결과-….json) · 글 상자에 파일 끌어 놓기: 글 상자에 넣고 붙이기와 같이 읽는다(이력 파일이면 불러오기로)
  const readFile=f=>{if(!f)return;const rd=new FileReader();rd.onload=()=>{const tx=String(rd.result);let o=null;try{o=JSON.parse(tx)}catch(e){}
@@ -1067,7 +1104,9 @@ function initPaste(){loadStore();$('#paste-fb').innerHTML=fbOpts('').replace('>�
  const es=entries(),last=getLast();
  if(!R0&&es.length){openEntry(MEM[last]&&MEM[last].블록?last:es[0].k)}else showEngine();
  if(!R0){$('#paste').hidden=false;$('#paste-btn').setAttribute('aria-expanded','true')}
- phist()}
+ phist();
+ // 링크(#r=)로 열렸으면 읽는다 · 열린 판에서 주소만 바꿔도(같은 탭에 새 링크) 읽는다
+ readLink();addEventListener('hashchange',()=>{readLink()})}
 const setThemeLabel=()=>{const c=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');$('#theme').textContent=c==='dark'?'◐ 밝게':'◐ 어둡게'};
 let th=null;try{th=localStorage.getItem('roas-board-theme')}catch(e){}if(th)document.documentElement.setAttribute('data-theme',th);setThemeLabel();
 $('#theme').onclick=()=>{const c=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('roas-board-theme',n)}catch(e){}setThemeLabel()};
