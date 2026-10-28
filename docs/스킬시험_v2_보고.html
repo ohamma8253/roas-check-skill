@@ -1,0 +1,360 @@
+<title>roas-check 스킬 시험 보고</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 레이아웃: 한 줄 기둥(본문 폭 약 760px) 보고서. 위에서 결론 → 스킬 모양 → 과정 → 결과 격자 → 고친 곳 → 남은 위험 순. */
+:root {
+  --bg: #f5f6f4;
+  --paper: #ffffff;
+  --ink: #1d2422;
+  --muted: #5d6965;
+  --line: #d9dfdc;
+  --accent: #1f6b5c;
+  --accent-soft: #e3efeb;
+  --ok: #23734a;
+  --ok-soft: #e1f1e7;
+  --part: #9a5b00;
+  --part-soft: #f8ecd6;
+  --bad: #b13a1f;
+  --bad-soft: #f8e3dd;
+  --none: #8a9692;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121615; --paper: #1a201e; --ink: #e6ebe9; --muted: #9daaa5; --line: #2e3734;
+    --accent: #6cc3ad; --accent-soft: #1d3530;
+    --ok: #6fcf97; --ok-soft: #173126; --part: #e8b25a; --part-soft: #3a2c14; --bad: #f08a6e; --bad-soft: #3d1f17; --none: #7d8a86;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121615; --paper: #1a201e; --ink: #e6ebe9; --muted: #9daaa5; --line: #2e3734;
+  --accent: #6cc3ad; --accent-soft: #1d3530;
+  --ok: #6fcf97; --ok-soft: #173126; --part: #e8b25a; --part-soft: #3a2c14; --bad: #f08a6e; --bad-soft: #3d1f17; --none: #7d8a86;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15.5px; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 72px;
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+.wrap { max-width: 780px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.35; margin: 0; }
+h1 { font-size: clamp(26px, 5vw, 34px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 21px; font-weight: 700; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font-size: 12.5px; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+.lede { color: var(--muted); max-width: 62ch; }
+section { display: grid; gap: 18px; }
+.sec-head { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+a { color: var(--accent); }
+
+/* 결론 */
+.verdict { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 22px; display: grid; gap: 18px; }
+.verdict-line { font-size: 18px; font-weight: 600; }
+.verdict-line b { color: var(--ok); }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.fact { display: grid; gap: 2px; padding-top: 10px; border-top: 2px solid var(--accent); }
+.fact .v { font-family: var(--f-data); font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.fact .k { font-size: 13px; color: var(--muted); }
+@media (max-width: 620px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 카드 흐름 */
+.flow { display: grid; gap: 10px; }
+.flow-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+.flow-label { width: 100%; font-size: 13px; color: var(--muted); font-weight: 500; }
+.card { flex: 1 1 120px; min-width: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; }
+.card .id { font-family: var(--f-data); font-size: 12px; color: var(--accent); }
+.card .t { font-size: 14px; font-weight: 600; line-height: 1.4; }
+.card .d { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.rules { background: var(--accent-soft); border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; font-size: 14.5px; }
+
+/* 과정 */
+.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+.step:first-child { border-top: 0; }
+.step .when { font-family: var(--f-data); font-size: 13px; color: var(--muted); padding-top: 2px; }
+.step .what { display: grid; gap: 4px; }
+.step .runs { font-family: var(--f-data); font-size: 13px; color: var(--accent); }
+@media (max-width: 520px) { .step { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+
+/* 표 */
+.tbl-wrap { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 12.5px; color: var(--muted); font-weight: 600; background: var(--bg); white-space: nowrap; }
+td.n, th.n { text-align: right; font-family: var(--f-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* 결과 격자 */
+.grid-tbl td { min-width: 104px; }
+.grid-tbl th:first-child, .grid-tbl td:first-child { min-width: 128px; }
+.cell { display: grid; gap: 3px; }
+.st { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; font-size: 13.5px; border-radius: 4px; padding: 1px 7px; width: fit-content; }
+.st.ok { color: var(--ok); background: var(--ok-soft); }
+.st.part { color: var(--part); background: var(--part-soft); }
+.meta { font-family: var(--f-data); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.flag { font-size: 12px; color: var(--bad); line-height: 1.45; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+
+/* 비교 막대 */
+.bars { display: grid; gap: 12px; }
+.bar-row { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 12px; align-items: center; }
+.bar { display: flex; height: 26px; border-radius: 5px; overflow: hidden; border: 1px solid var(--line); }
+.bar span { display: flex; align-items: center; justify-content: center; font-family: var(--f-data); font-size: 12.5px; }
+.bar .b-ok { background: var(--ok-soft); color: var(--ok); }
+.bar .b-part { background: var(--part-soft); color: var(--part); }
+.bar-label { font-size: 14px; }
+.bar-label small { display: block; color: var(--muted); font-size: 12.5px; }
+@media (max-width: 520px) { .bar-row { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 640px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.box.warn { border-left: 3px solid var(--part); }
+.risk { display: grid; gap: 4px; }
+.risk + .risk { padding-top: 12px; border-top: 1px solid var(--line); }
+.tag { font-size: 12px; font-weight: 600; color: var(--muted); }
+code { font-family: var(--f-data); font-size: 0.88em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 6px; }
+</style>
+
+<div class="wrap">
+
+<header style="display:grid;gap:12px">
+  <p class="eyebrow">어베어 자동화 미션 ① · ROAS 저하 체크(메타 기준) · 2026-10-23</p>
+  <h1>roas-check 스킬 시험 보고</h1>
+  <p class="lede">메타 ROAS가 떨어졌을 때 웹 대화(Claude · ChatGPT)에서 마케터에게 "어디를 열어 무엇을 보내 달라"고 단계별로 안내해 점검을 끝까지 함께 하는 스킬이다. 어떻게 만들고 고쳤는지, 여섯 모델로 시험한 결과를 정리했다.</p>
+</header>
+
+<section aria-labelledby="s-verdict">
+  <div class="verdict">
+    <p class="eyebrow" id="s-verdict">결론</p>
+    <p class="verdict-line">실제로 돈 시험 <span class="num">47</span>회 가운데 원인 자리를 <b>틀린 경우는 0회</b>다.</p>
+    <div class="facts">
+      <div class="fact"><span class="v">4</span><span class="k">시나리오(데일리 3 · 위클리 1)</span></div>
+      <div class="fact"><span class="v">6</span><span class="k">모델(Claude 2 · GPT 3 · 제미나이 1)</span></div>
+      <div class="fact"><span class="v">21/24</span><span class="k">최종 시험 원인 맞음(나머지 3회는 '부분')</span></div>
+      <div class="fact"><span class="v">78</span><span class="k">체크리스트 점검 수(76 → 78)</span></div>
+    </div>
+    <ul>
+      <li>최종 시험의 '부분' 3회는 모두 루나(gpt-6-luna)였다. 원인 자리는 짚었지만 근거 하나가 빠지거나 할 일이 약했다.</li>
+      <li>고치기 전에는 있던 '하지 않은 조치를 했다고 쓰기'가 최종 시험에서는 0회였다. 최종 진행표도 모두 10줄 이하로 줄었다.</li>
+      <li>마지막 판(배포용 묶음)은 오푸스 · 소넷으로만 다시 확인했다. GPT 쪽은 사용량이 바닥났고, 제미나이는 무료 할당량이 끝나 다시 돌리지 못했다.</li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="s-shape">
+  <div class="sec-head">
+    <h2 id="s-shape">스킬의 모양</h2>
+    <p class="lede">스크립트 없이 대화만으로 움직이는 단계 카드다. 바깥(시장)에서 안(자사 웹 · 메타 구조)으로 좁혀 간다.</p>
+  </div>
+  <div class="flow">
+    <div class="flow-row">
+      <span class="flow-label">데일리 — 갑자기 떨어졌을 때(세팅 상태 점검)</span>
+      <div class="card"><span class="id">카드 0</span><span class="t">시작</span><span class="d">광고주 · 날짜 · 광고 목표</span></div>
+      <div class="card"><span class="id">카드 1</span><span class="t">신호판</span><span class="d">정말 떨어졌나, 어느 숫자가 끌어내렸나</span></div>
+      <div class="card"><span class="id">카드 2</span><span class="t">원인 자리 찾기</span><span class="d">잃은 매출이 몰렸나, 퍼졌나</span></div>
+      <div class="card"><span class="id">카드 3</span><span class="t">웹 상태</span><span class="d">도착 → 랜딩 → 상품 → 장바구니 → 결제</span></div>
+      <div class="card"><span class="id">카드 4</span><span class="t">매체 설정</span><span class="d">세팅이 의도대로인가, 변경 내역</span></div>
+      <div class="card"><span class="id">카드 5</span><span class="t">측정 · 시장</span><span class="d">구매가 잡히나, 다 같이 겪는 일인가</span></div>
+      <div class="card"><span class="id">카드 6</span><span class="t">마무리</span><span class="d">진행표 · 할 일 3개 · 공유 메시지</span></div>
+    </div>
+    <div class="flow-row">
+      <span class="flow-label">위클리 — 몇 주째 서서히 떨어질 때(캠페인 방향 점검)</span>
+      <div class="card"><span class="id">카드 W1</span><span class="t">몇 주째, 어느 숫자가</span><span class="d">이번 주 vs 앞 4주, 자사몰 · 업종 같이 보기</span></div>
+      <div class="card"><span class="id">카드 W2</span><span class="t">원인 읽기</span><span class="d">같이 움직임 · 비중 이동 · 닳았나</span></div>
+      <div class="card"><span class="id">카드 W3</span><span class="t">마무리</span><span class="d">가설 순위 · 이번 주 협의 · 다음 기획</span></div>
+    </div>
+  </div>
+  <div class="rules">
+    <strong>진행 원칙(시험으로 다듬은 것)</strong>
+    <ul>
+      <li>한 번에 번호 질문 3개까지, 질문 하나에 화면 하나. 이미 받은 답은 다시 묻지 않는다.</li>
+      <li>들은 것만 쓴다. 받지 않은 자료로 "확인 완료"라고 쓰지 않는다. 하지 않은 조치는 "하겠습니다"로 쓴다.</li>
+      <li>"꺼야 돼요?"라고 재촉받아도 원인을 찾기 전에는 끄기 · 줄이기를 권하지 않는다. 비밀번호는 받지 않는다.</li>
+      <li>기준값을 묻지 않는다. 늘 맞아야 하는 값, 어제와 같은가, 그 계정의 평소 범위로 판단한다.</li>
+      <li>최종 진행표는 10줄 이하. 이상 · 확인 필요 · 못 봄과 핵심 정상만 남긴다.</li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="s-process">
+  <div class="sec-head">
+    <h2 id="s-process">만든 과정</h2>
+    <p class="lede">처음엔 사례 하나로 시험했고, 사례를 넷으로 늘린 뒤 "빠른 모델로 고치고 → 여섯 모델로 확인"을 되풀이했다.</p>
+  </div>
+  <ol class="steps">
+    <li class="step"><span class="when">10/23 오전</span><div class="what"><h3>첫 시험 — 사례 하나</h3><p>'가을 행사가 끝났는데 캠페인이 켜져 있음' 사례로 여섯 모델 모두 원인을 맞혔다. 그런데 한 번에 13개까지 묻거나, 표가 50줄까지 길어지거나, 하지 않은 조치("즉시 끄기 완료")를 썼다. 그래서 스크립트를 떼어 내고 웹 대화용 단계 카드로 줄였다.</p><span class="runs">6모델 + 웹판 3모델</span></div></li>
+    <li class="step"><span class="when">1단계</span><div class="what"><h3>사례를 넷으로 늘림</h3><p>측정 끊김 · 업종 전체 하락 · 서툰 사용자 · 소재 피로. 하루 · 광고세트 단위로 숫자를 만들어 계정 · 캠페인 · 자사몰 숫자가 서로 맞게 했다. 채점 기준은 시험 에이전트가 볼 수 없는 곳에 따로 두었다.</p></div></li>
+    <li class="step"><span class="when">2단계</span><div class="what"><h3>빠른 모델로 1차 시험</h3><p>고치기 전 스킬로 소넷 · 루나 · 제미나이를 돌렸다. 12회 중 원인 맞음 5회, 부분 7회였다.</p><span class="runs">12회</span></div></li>
+    <li class="step"><span class="when">3단계</span><div class="what"><h3>스킬 고치기 → 여섯 모델 최종 시험</h3><p>카드 1에 '가장 크게 끌어내린 숫자 → 먼저 볼 곳' 표를 넣었고, 카드 5에 측정 · 시장 판정을 넣었다. 질문 3개의 뜻도 정했다. 이 판으로 여섯 모델 × 사례 넷을 돌렸다.</p><span class="runs">24회 · 원인 맞음 21 · 부분 3</span></div></li>
+    <li class="step"><span class="when">4단계</span><div class="what"><h3>문제가 난 조합만 다시</h3><p>'질문 하나 = 화면 하나', '들은 것만 쓴다', 약어는 우리말로 쓰는 규칙을 넣고 문제가 났던 조합 6개를 다시 돌렸다. 루나 위클리가 '부분'에서 '맞음'이 됐다.</p><span class="runs">6회 · 모두 맞음</span></div></li>
+    <li class="step"><span class="when">5단계</span><div class="what"><h3>해외 참고 스킬 반영</h3><p>GitHub 공개 스킬 두 곳의 진단 방식 가운데 우리 원칙과 맞는 것만 카드 문구로 넣었다(아래 표). 시장 자리 이름도 시즌 상황 · 수요 상황 · 경쟁 상황으로 바꿨다.</p><span class="runs">확인 2회 · 모두 맞음</span></div></li>
+    <li class="step"><span class="when">6단계</span><div class="what"><h3>배포판 확인</h3><p>묶음(zip)에 들어간 마지막 판으로 오푸스 · 소넷이 측정 · 서툰 사용자 · 소재 피로를 한 번씩 돌렸다.</p><span class="runs">3회 · 모두 맞음</span></div></li>
+  </ol>
+</section>
+
+<section aria-labelledby="s-scen">
+  <div class="sec-head">
+    <h2 id="s-scen">시험 사례</h2>
+    <p class="lede">광고주 이름과 숫자는 모두 지어낸 것이다. 사용자 역할은 사례 파일에 적힌 답만 한다.</p>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>사례</th><th>실제 원인</th><th>핵심 숫자</th></tr></thead>
+      <tbody>
+        <tr><td><strong>측정 끊김</strong><br><span class="meta">데일리 · 가온리빙</span></td><td>전날 밤 주문 완료 페이지를 개편하면서 휴대폰 구매 이벤트가 끊김</td><td>ROAS <span class="num">416% → 94%</span>, 결제 시작 → 구매 <span class="num">62% → 14%</span>, 자사몰 주문은 <span class="num">357</span>건 그대로</td></tr>
+        <tr><td><strong>업종 전체 하락</strong><br><span class="meta">데일리 · 하루핏</span></td><td>대형 플랫폼 가을 세일 시작(경매 경쟁). 우리 세팅은 정상</td><td>ROAS <span class="num">433% → 291%</span>, 노출 단가 <span class="num">+31%</span>, 같은 업종 4곳 <span class="num">−22~31%</span></td></tr>
+        <tr><td><strong>서툰 사용자</strong><br><span class="meta">데일리 · 다솜니트</span></td><td>울 카디건 베이지 · 회색 일시 품절. 사용자는 7일 캡처를 주고, 캡처만 주고, 오타를 내고, 비밀번호를 보내고, "꺼야 돼요?"라고 재촉함</td><td>ROAS <span class="num">428% → 246%</span>, 잃은 매출 <span class="num">100%</span>가 울 카디건</td></tr>
+        <tr><td><strong>소재 피로</strong><br><span class="meta">위클리 · 산들아웃도어</span></td><td>같은 소구점 소재를 8월 말부터 계속 돌려 닳음</td><td>주별 ROAS <span class="num">4.59 → 3.47</span>, 클릭률 <span class="num">1.34% → 1.06%</span>, 빈도 <span class="num">2.0 → 4.0</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="s-result">
+  <div class="sec-head">
+    <h2 id="s-result">최종 시험 결과 — 여섯 모델 × 사례 넷</h2>
+    <p class="lede">고친 스킬로 돌린 24회. 칸마다 원인 판정, 사용자가 답한 횟수, 최종 진행표 줄 수를 적었다. 빨간 글씨는 받지 않은 자료로 '확인했다'고 쓴 곳이다.</p>
+  </div>
+  <div class="legend"><span><span class="st ok">● 맞음</span> 원인 자리와 근거가 맞음</span><span><span class="st part">◐ 부분</span> 원인 자리는 맞지만 근거 · 할 일이 빠짐</span><span>틀림 0회</span></div>
+  <div class="tbl-wrap">
+    <table class="grid-tbl">
+      <thead><tr><th>사례</th><th>오푸스 5.5</th><th>소넷 5.5</th><th>솔</th><th>아스트라</th><th>루나</th><th>제미나이</th></tr></thead>
+      <tbody>
+        <tr><td><strong>측정 끊김</strong></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 6 · 표 7줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 5 · 표 6줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 8 · 표 7줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 8 · 표 8줄</span></div></td>
+          <td><div class="cell"><span class="st part">◐ 부분</span><span class="meta">답 6 · 표 6줄</span><span class="flag" style="color:var(--muted)">휴대폰 단면을 묻지 않음</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 5 · 표 5줄</span><span class="flag">원인을 '확인됨'으로 먼저 씀</span></div></td></tr>
+        <tr><td><strong>업종 전체 하락</strong></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 7 · 표 9줄</span><span class="flag">"측정 모두 정상 확인"(약한 과장)</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 5 · 표 9줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 9 · 표 6줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 7 · 표 7줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 7 · 표 5줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 7 · 표 5줄</span><span class="flag">"모든 항목 직접 확인 완료"</span></div></td></tr>
+        <tr><td><strong>서툰 사용자</strong></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 10 · 표 7줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 10 · 표 7줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 13 · 표 7줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 14 · 표 9줄</span></div></td>
+          <td><div class="cell"><span class="st part">◐ 부분</span><span class="meta">답 11 · 표 6줄</span><span class="flag" style="color:var(--muted)">할 일을 "확인 전 보류"로 약하게 씀</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 11 · 표 6줄</span><span class="flag">합의 전 "중지해 두고"</span></div></td></tr>
+        <tr><td><strong>소재 피로</strong><br><span class="meta">위클리</span></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 5 · 표 7줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 4 · 표 8줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 5 · 표 8줄</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 5 · 표 8줄</span></div></td>
+          <td><div class="cell"><span class="st part">◐ 부분</span><span class="meta">답 3 · 표 8줄</span><span class="flag" style="color:var(--muted)">근거 세기를 낮춤 → 다시 시험에서 맞음</span></div></td>
+          <td><div class="cell"><span class="st ok">● 맞음</span><span class="meta">답 4 · 표 8줄</span><span class="flag">받지 않은 자료로 "간접 확인 완료"</span></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="lede">서툰 사용자 사례는 여섯 모델이 모두 같게 처리했다. 7일 캡처를 짚어 다시 받았고, 비밀번호를 거절했고, 오타를 합계로 잡았고, 품절을 구체적인 질문으로 찾았고, "꺼야 돼요?"에 원인 전에는 결론을 내지 않았다.</p>
+</section>
+
+<section aria-labelledby="s-compare">
+  <div class="sec-head">
+    <h2 id="s-compare">고치기 전과 후</h2>
+    <p class="lede">같은 세 모델(소넷 · 루나 · 제미나이)을 같은 사례 넷으로 돌린 결과다.</p>
+  </div>
+  <div class="bars" role="img" aria-label="고치기 전 12회 중 맞음 5 부분 7, 고친 뒤 12회 중 맞음 9 부분 3">
+    <div class="bar-row"><span class="bar-label">고치기 전<small>12회 · 조치 단정 1 · 표 10줄 넘음 2</small></span>
+      <div class="bar"><span class="b-ok" style="width:41.7%">맞음 5</span><span class="b-part" style="width:58.3%">부분 7</span></div></div>
+    <div class="bar-row"><span class="bar-label">고친 뒤<small>12회 · 조치 단정 0 · 표 10줄 넘음 0</small></span>
+      <div class="bar"><span class="b-ok" style="width:75%">맞음 9</span><span class="b-part" style="width:25%">부분 3</span></div></div>
+    <div class="bar-row"><span class="bar-label">고친 뒤 여섯 모델<small>24회 · 조치 단정 0 · 표 10줄 넘음 0</small></span>
+      <div class="bar"><span class="b-ok" style="width:87.5%">맞음 21</span><span class="b-part" style="width:12.5%">부분 3</span></div></div>
+  </div>
+</section>
+
+<section aria-labelledby="s-fail">
+  <div class="sec-head">
+    <h2 id="s-fail">시험에서 나온 문제와 고친 곳</h2>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>나온 문제</th><th>고친 곳</th></tr></thead>
+      <tbody>
+        <tr><td>번호는 3개로 지키면서 번호 하나에 여러 화면을 넣음(최대 10개)</td><td>질문 하나 = 화면 하나, 카드를 합치지 않음. 다시 시험에서 모두 3개 이하</td></tr>
+        <tr><td>사용자가 말하기 전에 "설정 변경 없음", 소재 시작일 등을 씀</td><td>원칙 '들은 것만 쓴다'. 확인 완료는 받은 답의 범위에서만</td></tr>
+        <tr><td>측정 끊김을 '모바일 급감'으로만 읽음</td><td>카드 5에 측정 판정 추가: 결제 시작까지 평소인데 구매만 무너지면 측정 끊김, 기기 단면으로 확인, 예산 · 소재는 건드리지 않음</td></tr>
+        <tr><td>업종 하락인데 급히 예산을 줄이려 함</td><td>카드 5에 시장 판정 추가: 급한 감액 금지, 기간 목표 · 혜택 협의, 세일 뒤 같은 성격의 날끼리 다시 비교</td></tr>
+        <tr><td>캡처의 기간이 틀리거나 숫자를 잘못 침</td><td>캡처는 기간 · 비교 · 열부터 확인, 손으로 친 숫자는 하위 합 = 위 합으로 맞춰 봄</td></tr>
+        <tr><td>CPM · CTR 같은 영어 약어</td><td>우리말을 먼저 쓰고, 내보내기 열 이름을 안내할 때만 괄호로 표기</td></tr>
+        <tr><td>위클리에서 자사몰 매출 하락(메타 매출 포함)을 반대 근거로 잘못 읽음</td><td>자사몰 매출에 메타가 포함된다는 주의, 업종은 다음 차례에 따로 물음</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="s-ref">
+  <div class="sec-head">
+    <h2 id="s-ref">해외 참고 스킬에서 가져온 것</h2>
+    <p class="lede">GitHub 공개 스킬 두 곳(gomarble-ai/marketing-agent의 진단 · 소재 피로 · 안전 규칙, mikefutia/meta-ads-auditor)을 읽고, 우리 원칙과 맞는 것만 넣었다.</p>
+  </div>
+  <div class="two">
+    <div class="box">
+      <h3>넣은 것</h3>
+      <ul>
+        <li>광고 목표가 구매가 아니면 ROAS 대신 결과당 비용으로 보고, 판정 근거가 약해질 수 있다고 밝힘</li>
+        <li>정말 떨어졌나: 하루 구매가 20건 미만이면 3~7일을 묶어 비교(새 점검 '표본이 충분한가?')</li>
+        <li>노출 단가가 오르고 클릭률은 그대로면 경매 쪽, 클릭률도 떨어지면 소재 쪽</li>
+        <li>지출을 늘리며 떨어졌는가(새 점검 '지출을 늘리며 떨어졌나?')</li>
+        <li>몫으로 말하기: "지출 49%, 잃은 매출 86%"</li>
+        <li>할 일은 3개를 앞에, 작고 되돌리기 쉬운 조치부터. 예산은 한 번에 20% 안쪽, 가장 많이 파는 광고는 끄지 말고 새 소재를 옆에</li>
+        <li>빈도만 높다고 피로가 아님. 빈도가 오르고 클릭률이 떨어지는 게 2주 넘게 함께일 때 피로</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>일부러 안 넣은 것</h3>
+      <ul>
+        <li>0~100점 건강 점수: 표준값이 없어 기준값을 정하지 않기로 한 결정과 맞지 않고, 점수가 원인 자리를 흐림</li>
+        <li>빈도 3.5, 노출 단가 +25% 같은 고정 문턱: 같은 이유. 그 계정의 평소 범위와 비교하는 방식을 유지</li>
+        <li>잘 되는 광고 키우기 제안: 하락 점검의 범위 밖이고 결과가 길어짐</li>
+        <li>계정 변경 실행 · 자동 감시: 이 스킬은 읽고 안내만 함</li>
+        <li>지면 · 연령별 예산 이동: 참고 스킬의 안전 규칙도 금지하는 항목</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box warn">
+    <h3>메타 공식 광고 연결 서버 — 제안만 하고 아직 넣지 않음</h3>
+    <p>메타가 직접 운영하는 연결 서버(<code>mcp.facebook.com/ads</code>, 2026-04-29 공개 시험판)가 있다. 연결하면 카드 1 · 2 · 4 · W1 · W2의 숫자와 변경 내역을 사용자에게 받지 않고 직접 읽을 수 있다. 사이트 · 자사몰 · 업종은 계속 사람에게 묻는다.</p>
+    <p>지금은 넣지 않았다. 서버에 쓰기 기능도 있고, Claude 웹에서 연결하는 방법이 문서에 없고, 아직 시험하지 않았기 때문이다. 읽기 권한(<code>ads_read</code>)만으로 시험 연결이 되면 '읽기만 한다'는 갈래를 넣고 사례 넷을 다시 시험하는 순서를 제안한다.</p>
+  </div>
+</section>
+
+<section aria-labelledby="s-risk">
+  <div class="sec-head">
+    <h2 id="s-risk">남은 위험</h2>
+  </div>
+  <div class="box">
+    <div class="risk"><span class="tag">1 · 모의 대화의 한계</span><p>사용자 역할이 너무 협조적이었다. 4개 넘게 물으면 일부만 답한다는 규칙을 거의 지키지 않아 몰아 묻기가 벌을 받지 않았다. 실제 사람(특히 서툰 사용자)과의 시험은 아직 없다.</p></div>
+    <div class="risk"><span class="tag">2 · 마지막 판을 여섯 모델로 다시 돌리지 못함</span><p>마지막 다듬기는 문구 추가 위주이고 오푸스 · 소넷으로만 확인했다. GPT 세 모델은 사용량이 바닥났고, 제미나이는 무료 할당량이 끝났다(약 6일 뒤 다시 풀림). 풀리면 같은 명령으로 24회를 다시 돌릴 수 있다.</p></div>
+    <div class="risk"><span class="tag">3 · 루나의 근거 누락</span><p>측정 끊김 · 서툰 사용자의 '부분'은 다듬은 판으로 다시 확인하지 못했다. 원인 자리는 맞혔지만 근거 하나가 빠지거나 할 일이 약해질 위험이 남는다.</p></div>
+    <div class="risk"><span class="tag">4 · 제미나이의 '확인 완료' 표현</span><p>줄었지만 다시 시험에서도 한 군데 남았다.</p></div>
+    <div class="risk"><span class="tag">5 · 손계산 실수</span><p>일별 파일로 평소 범위를 낼 때 계산이 틀린 경우가 있었다. 판정이 바뀐 경우는 없었다.</p></div>
+  </div>
+</section>
+
+<footer>
+  <p>시험 방식: 모든 모델 추론 강도 medium. 오푸스 5.5 · 소넷 5.5(Claude Code), gpt-6.1-sol · gpt-6-astra · gpt-6-luna(Codex), Gemini 3.8 Flash Medium(Antigravity CLI, 계정 로그인). 웹 대화판 지시라 셸 · 계산 도구 없이 손으로 계산했다.</p>
+  <p>시험 횟수: 띄운 시험 49개 가운데 제미나이 2개는 할당량이 소진돼 시작하지 못했고, 실제로 돈 것은 47회다(빠른 모델 1차 12 · 최종 24 · 다시 시험 6 · 참고 반영 확인 2 · 배포판 확인 3).</p>
+  <p>자세한 보고(저장소 안): <code>docs/스킬시험_v2.md</code> · 채점표 <code>docs/스킬시험_v2/채점표.md</code> · 스킬 묶음 <code>skill/roas-check.zip</code></p>
+  <p>이 보고는 2026-10-23 시험 당시 판 기준이다. 그 뒤 스킬은 v5, 체크리스트는 87개가 됐고, 최종 진행표는 '10줄 이하' 대신 '이상 · 확인 필요 · 못 봄 · 원인 자리 줄 + 그 밖에 한 줄'로 바뀌었다(저장소 <code>README.md</code> · <code>CHANGELOG.md</code>).</p>
+</footer>
+
+</div>
