@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROAS 점검 회로</title>
+<style>
+:root{--bg:#f4f3ef;--surface:#fff;--surface-2:#f0eee8;--text:#1c1c1a;--muted:#67665f;--line:#dcd9cf;--accent:#3b6cf0;
+--ok:#1f8a5b;--bad:#d4480f;--warn:#b07d14;--na:#8b8a83;--ok-soft:#e3f2ea;--bad-soft:#fde6d6;--warn-soft:#f6eedf;
+--stage:#0d1220;--stage-2:#141b2e;--stage-line:rgba(170,190,255,.14);--stage-text:#dfe6ff;--stage-muted:#8d97b8;
+--pS:#e6b04e;--pJ:#45d19a;--pM:#6f9bff;--path:#7ad7ff;--shadow:0 1px 2px rgba(0,0,0,.05),0 6px 20px rgba(0,0,0,.06)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1013;--surface:#181a1f;--surface-2:#20232a;--text:#e9e8e3;--muted:#a2a19a;--line:#30333b;--accent:#86a8ff;
+--ok:#5fd09c;--bad:#ff8a4c;--warn:#e3b35f;--na:#7a7973;--ok-soft:#16261e;--bad-soft:#3e2318;--warn-soft:#2b2518;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35)}}
+:root[data-theme="dark"]{--bg:#0f1013;--surface:#181a1f;--surface-2:#20232a;--text:#e9e8e3;--muted:#a2a19a;--line:#30333b;--accent:#86a8ff;
+--ok:#5fd09c;--bad:#ff8a4c;--warn:#e3b35f;--na:#7a7973;--ok-soft:#16261e;--bad-soft:#3e2318;--warn-soft:#2b2518;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 16px 70px}h1{font-size:24px;margin:0;letter-spacing:-.01em}h2{font-size:16px;margin:0 0 10px}.muted{color:var(--muted)}.small{font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+.head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:end;justify-content:space-between;margin-bottom:14px}
+.counts{display:flex;flex-wrap:wrap;gap:6px}.cnt{font-size:13px;font-weight:700;padding:3px 11px;border-radius:999px;background:var(--surface-2)}
+.cnt.bad{background:var(--bad-soft);color:var(--bad)}.cnt.warn{background:var(--warn-soft);color:var(--warn)}.cnt.ok{background:var(--ok-soft);color:var(--ok)}.cnt.na{color:var(--na)}
+/* 회로 무대 */
+.main{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr);gap:14px;margin-bottom:14px;align-items:start}@media(max-width:980px){.main{grid-template-columns:1fr}}
+.stage{background:radial-gradient(120% 90% at 50% 0%,var(--stage-2),var(--stage));border-radius:16px;position:relative;overflow:hidden;box-shadow:var(--shadow);color:var(--stage-text)}
+.stage svg{display:block;width:100%;height:auto;margin-top:34px;touch-action:none;cursor:grab;user-select:none}.stage svg.drag{cursor:grabbing}
+.ctrl{position:absolute;left:12px;right:12px;top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;pointer-events:none}
+.ctrl>*{pointer-events:auto}.ctrl .grp{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.sbtn{border:1px solid rgba(170,190,255,.25);background:rgba(13,18,32,.6);color:var(--stage-text);border-radius:8px;padding:4px 10px;font:inherit;font-size:12.5px;cursor:pointer;backdrop-filter:blur(4px)}
+.sbtn[aria-pressed="true"]{background:rgba(122,215,255,.18);border-color:var(--path)}
+.ctrl label{font-size:12px;color:var(--stage-muted);display:flex;align-items:center;gap:6px}.ctrl input[type=range]{width:90px;accent-color:var(--path)}
+.hint{position:absolute;left:14px;bottom:10px;font-size:12px;color:var(--stage-muted);pointer-events:none}
+.legend{position:absolute;right:14px;bottom:10px;display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--stage-muted);pointer-events:none}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
+@media(max-width:640px){.ctrl{position:static;padding:10px 12px 0}.stage svg{margin-top:0}.hint{display:none}.legend{position:static;padding:0 12px 12px;flex-wrap:wrap}}
+/* svg 요소 */
+.hit{fill:transparent;stroke:none;pointer-events:all}
+.pl-fill,.pl-grid,.pl-name,.pl-sub,.e-in,.e-tag,.e-x,.e-xl,.e-path,.n text,.halo{pointer-events:none}
+.pl-fill{stroke-width:1.2}.pl-grid{stroke:var(--stage-line);stroke-width:.8}.pl-name{font-size:calc(17px*var(--k,1));font-weight:800;letter-spacing:.02em}.pl-sub{font-size:calc(13px*var(--k,1));fill:var(--stage-muted)}
+.e-in{stroke:rgba(200,215,255,.38);stroke-width:1.3;fill:none}.e-tag{stroke:rgba(69,209,154,.45);stroke-width:1;stroke-dasharray:3 4;fill:none}
+.e-x{stroke:rgba(200,215,255,.32);stroke-width:1.1;stroke-dasharray:5 5;fill:none}.e-xl{font-size:calc(12px*var(--k,1));fill:var(--stage-muted)}
+.e-path{stroke:var(--path);stroke-width:2.6;fill:none;stroke-dasharray:8 7;animation:flow 1.2s linear infinite;filter:drop-shadow(0 0 4px rgba(122,215,255,.8))}
+@keyframes flow{to{stroke-dashoffset:-15}}
+.n circle.core{stroke-width:2.2}.n text{font-size:calc(14px*var(--k,1));fill:var(--stage-text);font-weight:700;paint-order:stroke;stroke:rgba(10,14,26,.85);stroke-width:3px}
+.n text.v{font-size:calc(12px*var(--k,1));font-weight:500;fill:var(--stage-muted)}.n{cursor:pointer}.n:focus{outline:none}.n:focus circle.core,.n.sel circle.core{stroke-width:3.4}
+.n.ok circle.core{stroke:#45d19a;fill:#123a2b}.n.bad circle.core{stroke:#ff7b3d;fill:#4a1f0e}.n.warn circle.core{stroke:#f1bd4f;fill:#3d2f10}.n.na circle.core{stroke:#6b7290;fill:#151a2a;stroke-dasharray:3 3}
+.n.inst circle.core{stroke-width:1.6}.n.stop circle.ring{stroke:var(--path);stroke-width:2;fill:none;filter:drop-shadow(0 0 5px rgba(122,215,255,.9))}
+.halo{fill:#ff7b3d;opacity:.0;animation:pulse 1.6s ease-out infinite}@keyframes pulse{0%{opacity:.55;transform:scale(.6)}100%{opacity:0;transform:scale(1.9)}}
+.n.sel circle.sel-ring{stroke:#fff;stroke-width:1.5;fill:none;stroke-dasharray:2 3}
+.g-node polygon{fill:#1d2b52;stroke:var(--path);stroke-width:2}.g-node text{font-size:calc(14px*var(--k,1));font-weight:800;fill:#fff}
+@media (prefers-reduced-motion:reduce){.e-path,.halo{animation:none}.halo{opacity:.35}}
+/* 옆 패널 */
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.det h2{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.badge{font-size:12px;font-weight:800;padding:1px 9px;border-radius:999px;background:var(--surface-2)}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}.badge.warn{background:var(--warn-soft);color:var(--warn)}.badge.ok{background:var(--ok-soft);color:var(--ok)}.badge.na{color:var(--na)}
+.iss{border:1px solid var(--line);border-left:5px solid var(--na);border-radius:11px;padding:10px 12px;margin-top:8px;background:var(--surface)}
+.iss.bad{border-left-color:var(--bad)}.iss.warn{border-left-color:var(--warn)}.iss.ok{border-left-color:var(--ok)}
+.iss .w{font-size:12px;color:var(--muted)}.iss .q{font-weight:800}.iss .tg{font-size:12.5px;color:var(--muted)}.iss .ev{font-size:13px;margin-top:3px}.iss .todo{font-size:13px;font-weight:700;margin-top:3px}
+.urg{font-size:11px;font-weight:800;padding:0 7px;border-radius:999px;background:var(--bad-soft);color:var(--bad);margin-left:6px}
+.big{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.2}.big small{font-size:14px;font-weight:600;color:var(--muted);margin-left:6px}
+.factors{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.f{border:1px solid var(--line);border-radius:9px;padding:6px 8px}.f .k{font-size:11.5px;color:var(--muted)}.f .v{font-weight:800}.f.top{border-color:var(--bad);background:var(--bad-soft)}
+.trail .step{border-left:3px solid var(--line);padding:2px 0 2px 10px;margin-top:8px}.trail .step.stop{border-color:var(--bad)}.dec{font-size:11.5px;font-weight:800;padding:0 8px;border-radius:999px;background:var(--surface-2);margin-left:6px}
+.bar{display:flex;align-items:center;gap:8px;font-size:12.5px}.bar .t{flex:0 0 46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar .b{flex:1;height:5px;border-radius:3px;background:var(--line);position:relative}.bar .b i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--bad)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}@media(max-width:860px){.row2{grid-template-columns:1fr}}
+.issues{display:grid;grid-template-columns:repeat(2,1fr);gap:0 12px}@media(max-width:860px){.issues{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13.5px}th,td{text-align:left;vertical-align:top;padding:8px;border-bottom:1px solid var(--line)}th{font-size:12px;color:var(--muted)}
+.on{color:var(--ok);font-weight:800}.off{color:var(--na);font-weight:800}.chip{font-size:12px;padding:1px 8px;border-radius:8px;border:1px solid var(--line);margin:0 4px 4px 0;display:inline-block}
+@media(max-width:640px){table.stack thead{display:none}table.stack tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}table.stack td{display:block;border:0;padding:2px 0}table.stack td::before{content:attr(data-k);display:block;font-size:12px;color:var(--muted);font-weight:700}}
+details>summary{cursor:pointer;font-weight:800;margin-top:10px}
+.hyp{border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-top:8px}
+.theme{position:fixed;right:14px;bottom:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:9px;padding:6px 12px;cursor:pointer;z-index:5}
+</style></head><body>
+<div class="wrap">
+  <div class="head"><div><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="counts" id="counts"></div></div>
+  <div class="main">
+    <div class="stage" id="stage">
+      <svg id="cv" viewBox="0 0 1000 640" role="img" aria-label="시장 · 자사 · 매체 세 판을 쌓은 점검 회로. 드래그해 돌려 본다"></svg>
+      <div class="ctrl">
+        <div class="grp"><button class="sbtn" data-view="tilt">기울여 보기</button><button class="sbtn" data-view="top">위에서</button><button class="sbtn" data-view="side">옆에서</button><button class="sbtn" id="spin" aria-pressed="false">천천히 돌기</button></div>
+        <div class="grp"><label>판 간격 <input type="range" id="gap" min="0.5" max="1.7" step="0.05" value="1"></label></div>
+      </div>
+      <div class="hint">드래그: 돌리기 · 기울이기 / 점: 그 자리의 점검</div>
+      <div class="legend"><span><i style="background:#ff7b3d"></i>이상</span><span><i style="background:#f1bd4f"></i>확인 필요</span><span><i style="background:#45d19a"></i>정상</span><span><i style="border:1.5px dashed #6b7290"></i>못 봄</span><span><i style="background:var(--path)"></i>원인 자리까지</span></div>
+    </div>
+    <div class="side"><div class="card det" id="detail"></div></div>
+  </div>
+  <div class="row2"><div class="card" id="signal"></div><div class="card" id="second"></div></div>
+  <div class="card" style="margin-bottom:14px" id="todo"></div>
+  <div class="card" id="sources"></div>
+</div>
+<button class="theme" id="theme" aria-label="밝기 바꾸기">◐</button>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(function(){
+const R=JSON.parse(document.getElementById('data').textContent);
+const $=s=>document.querySelector(s);const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct=(x,d=0)=>x==null?'—':(x*100).toFixed(d)+'%';const chg=x=>x==null?'—':Math.abs(x)<0.005?'변화 없음':(x>0?'+':'')+(x*100).toFixed(1)+'%';const won=x=>x==null?'—':Math.round(x).toLocaleString('ko-KR');
+const SN={bad:'이상',warn:'확인 필요',ok:'정상',na:'못 봄'};const FN={cpm:'노출 단가',ctr:'클릭률',cvr:'구매 전환율',aov:'객단가'};
+const NS='http://www.w3.org/2000/svg';
+// ── 회로 모델: 세 판(z) 위의 노드(x,y)
+const PLANES=[{id:'S',name:'시장',sub:'거시',z:1,col:'--pS'},{id:'J',name:'자사',sub:'웹 상태',z:0,col:'--pJ'},{id:'M',name:'매체',sub:'메타 구조',z:-1,col:'--pM'}];
+const N={
+ S1:['S',-0.82,-0.22,'달력 · 시즌'],S2:['S',-0.42,0.26,'수요'],S3:['S',0,-0.22,'경매 · 경쟁'],S4:['S',0.42,0.26,'업종 흐름'],S5:['S',0.82,-0.22,'플랫폼'],
+ J0:['J',-0.02,0.12,'자사몰 전체'],J1:['J',-0.86,-0.2,'도착'],J2:['J',-0.52,-0.2,'랜딩'],J3:['J',-0.17,-0.2,'상품'],J4:['J',0.17,-0.2,'장바구니'],J5:['J',0.52,-0.2,'결제'],J6:['J',0.86,-0.2,'구매 완료'],JT:['J',0,0.42,'측정 태그'],
+ M1:['M',-0.86,-0.4,'계정'],M2:['M',-0.3,-0.4,'캠페인'],M3:['M',0.26,-0.4,'광고세트'],M4:['M',0.82,-0.4,'광고(소재)'],MX:['M',0.82,0.42,'단면']};
+const INNER=[['J1','J2'],['J2','J3'],['J3','J4'],['J4','J5'],['J5','J6'],['M1','M2'],['M2','M3'],['M3','M4']];
+const TAG=['J1','J2','J3','J4','J5','J6'];
+const CROSS=[['M4','J1','연결 주소'],['JT','M1','전환 신호'],['J3','M1','카탈로그'],['S3','M3','경매'],['MX','M2',''],['MX','M3',''],['MX','M4','']];
+// 원인 자리 찾기의 실제 단위(인스턴스)
+const INST={};const L=R.location;let stopKey=null;
+if(L&&L.trail&&L.trail.length){
+ const t0=L.trail[0];(t0.children||[]).slice(0,4).forEach((c,i,a)=>{INST['c'+i]={hub:'M2',x:-0.7+i*0.3,y:0.0+i*0.24,name:c.name,d:c,level:'campaign'}});
+ const t1=L.trail[1];if(t1){(t1.children||[]).slice(0,4).forEach((c,i,a)=>{INST['a'+i]={hub:'M3',x:0.2+i*0.32,y:0.16+i*0.24,name:c.name,d:c,level:'adset',parentId:t1.unit.id}})}
+ for(const k in INST){if(INST[k].d.id===L.stop.id)stopKey=k}
+}
+const HYP={'매체 › 광고(소재)':'M4','매체 › 광고세트':'M3','매체 › 계정':'M1','자사 › 랜딩':'J2','자사 › 상품':'J3','시장 › 경매':'S3','시장 › 수요':'S2'};
+if(!stopKey&&R.hypotheses&&R.hypotheses.length){const w=R.hypotheses[0].where;for(const k in HYP){if(w.indexOf(k)===0){stopKey=HYP[k];break}}}
+const pathNodes=()=>{if(!L||!L.trail||!L.trail.length)return stopKey?['G',stopKey]:[];const p=['G','S4','J0','M1'];const top=Object.keys(INST).find(k=>INST[k].level==='campaign'&&L.trail[1]&&INST[k].d.id===L.trail[1].unit.id)||stopKey;if(top)p.push(top);
+ if(stopKey&&stopKey!==top)p.push(stopKey);return p};
+const st={yaw:-22,pitch:36,gap:1,sel:null,spin:false};
+const VIEWS={tilt:[-22,36],top:[0,86],side:[-8,10]};
+function proj(x,y,z){const a=st.yaw*Math.PI/180,p=st.pitch*Math.PI/180;const x1=x*Math.cos(a)-y*Math.sin(a),y1=x*Math.sin(a)+y*Math.cos(a);const zz=z*1.05*st.gap;
+ const y2=y1*Math.cos(p)-zz*Math.sin(p),z2=y1*Math.sin(p)+zz*Math.cos(p);const d=-y2;const s=1+0.1*d;return {X:500+x1*480*s,Y:330-z2*300*s,d,s}}
+function pos(k){if(k==='G')return [0,0,1.95];if(INST[k]){return [INST[k].x,INST[k].y,-1]}const n=N[k];const z=PLANES.find(p=>p.id===n[0]).z;return [n[1],n[2],z]}
+function P(k){const [x,y,z]=pos(k);return proj(x,y,z)}
+function el(t,a,p){const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);if(p)p.appendChild(n);return n}
+function tx(p,x,y,s,c,anchor){const t=el('text',{x,y,class:c||'','text-anchor':anchor||'middle'},p);t.textContent=s;return t}
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function line(g,a,b,cls){const A=P(a),B=P(b);return el('path',{d:`M${A.X},${A.Y} L${B.X},${B.Y}`,class:cls},g)}
+function curve(g,a,b,cls){const A=P(a),B=P(b);const mx=(A.X+B.X)/2,my=(A.Y+B.Y)/2-12;return el('path',{d:`M${A.X},${A.Y} Q${mx},${my} ${B.X},${B.Y}`,class:cls},g)}
+function nodeStatus(k){if(k==='J0'){const c=R.checks.find(x=>x.q.startsWith('자사몰 전체'));return c?c.status:'na'}if(INST[k]){const d=INST[k].d;return (L&&k===stopKey)?'bad':(d.share||0)>=0.5?'bad':(d.rate||0)>0.3?'warn':'ok'}return (R.nodes||{})[k]||'na'}
+function drawNode(g,k){const p=P(k),s=nodeStatus(k),inst=!!INST[k];const kk=parseFloat($('#cv').style.getPropertyValue('--k'))||1;const r=(inst?6.5:9)*p.s*kk;
+ const n=el('g',{class:`n ${s} ${inst?'inst':''} ${k===stopKey?'stop':''} ${st.sel===k?'sel':''}`,tabindex:0,role:'button','aria-label':(inst?INST[k].name:N[k][3])+' '+SN[s]},g);
+ el('title',{},n).textContent=(inst?INST[k].name+` · 잃은 매출 몫 ${pct(INST[k].d.share)}`:labelOf(k))+' — '+SN[s];
+ if(s==='bad'){const h=el('circle',{cx:p.X,cy:p.Y,r:r*1.6,class:'halo'},n);h.style.transformOrigin=`${p.X}px ${p.Y}px`}
+ if(k===stopKey)el('circle',{cx:p.X,cy:p.Y,r:r+6,class:'ring'},n);
+ el('circle',{cx:p.X,cy:p.Y,r,class:'core'},n);el('circle',{cx:p.X,cy:p.Y,r:r+10*kk,class:'hit'},n);if(st.sel===k)el('circle',{cx:p.X,cy:p.Y,r:r+4,class:'sel-ring'},n);
+ tx(n,p.X,p.Y-r-6,inst?shortName(INST[k].name):N[k][3]);if(inst)tx(n,p.X,p.Y+r+12,`몫 ${pct(INST[k].d.share)}`,'v');
+ const pick=()=>{st.sel=st.sel===k?null:k;draw();detail()};n.addEventListener('click',e=>{e.stopPropagation();pick()});n.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}})}
+const shortName=s=>s.length>12?s.slice(0,11)+'…':s;
+function labelOf(k){if(k==='G')return '신호판';if(INST[k])return INST[k].name;const n=N[k];return PLANES.find(p=>p.id===n[0]).name+' › '+n[3]}
+function draw(){const svg=$('#cv');svg.innerHTML='';const defs=el('defs',{},svg);
+ const order=PLANES.map(p=>({p,d:proj(0,0,p.z).d})).sort((a,b)=>a.d-b.d);
+ for(const {p} of order){const g=el('g',{},svg);const C=[[-1.08,-0.62],[1.08,-0.62],[1.08,0.62],[-1.08,0.62]].map(([x,y])=>proj(x,y,p.z));
+  const col=css(p.col);el('polygon',{points:C.map(c=>`${c.X},${c.Y}`).join(' '),class:'pl-fill',fill:col+'14',stroke:col+'88'},g);
+  for(let i=-2;i<=2;i++){const a=proj(i*0.5,-0.62,p.z),b=proj(i*0.5,0.62,p.z);el('line',{x1:a.X,y1:a.Y,x2:b.X,y2:b.Y,class:'pl-grid'},g)}
+  for(let j=-1;j<=1;j++){const a=proj(-1.08,j*0.4,p.z),b=proj(1.08,j*0.4,p.z);el('line',{x1:a.X,y1:a.Y,x2:b.X,y2:b.Y,class:'pl-grid'},g)}
+  const lab=proj(-1.08,0.62,p.z);const t=tx(g,lab.X+4,lab.Y-8,p.name+' · '+p.sub,'pl-name','start');t.setAttribute('fill',col);
+  INNER.filter(([a])=>N[a][0]===p.id).forEach(([a,b])=>line(g,a,b,'e-in'));
+  if(p.id==='J')TAG.forEach(a=>curve(g,'JT',a,'e-tag'));
+  if(p.id==='M'){for(const k in INST){const hub=INST[k].level==='campaign'?'M1':null;if(hub)line(g,hub,k,'e-in');if(INST[k].level==='adset'){const par=Object.keys(INST).find(c=>INST[c].level==='campaign'&&INST[c].d.id===INST[k].parentId);line(g,par||'M3',k,'e-in')}}
+   for(const k in INST)el('path',{d:`M${P(INST[k].hub).X},${P(INST[k].hub).Y} L${P(k).X},${P(k).Y}`,class:'e-tag',style:'stroke:rgba(111,155,255,.35)'},g)}
+  Object.keys(N).filter(k=>N[k][0]===p.id).forEach(k=>drawNode(g,k));if(p.id==='M')Object.keys(INST).forEach(k=>drawNode(g,k))}
+ const xg=el('g',{},svg);CROSS.forEach(([a,b,lab])=>{const A=P(a),B=P(b);el('path',{d:`M${A.X},${A.Y} L${B.X},${B.Y}`,class:'e-x'},xg);if(lab)tx(xg,(A.X+B.X)/2+6,(A.Y+B.Y)/2,lab,'e-xl','start')});
+ const pn=pathNodes();for(let i=0;i<pn.length-1;i++){const A=P(pn[i]),B=P(pn[i+1]);el('path',{d:`M${A.X},${A.Y} L${B.X},${B.Y}`,class:'e-path'},svg)}
+ // 신호판 G: 맨 위에 떠 있는 판단 노드
+ const G=P('G');const gg=el('g',{class:'g-node n',tabindex:0,role:'button','aria-label':'신호판'},svg);const w=58,h=20;
+ el('polygon',{points:`${G.X},${G.Y-h} ${G.X+w},${G.Y} ${G.X},${G.Y+h} ${G.X-w},${G.Y}`},gg);tx(gg,G.X,G.Y+4,'신호판');
+ const sg=R.signal;if(sg)tx(gg,G.X,G.Y+h+16,`ROAS ${pct(sg.roas_now)} · 평소 ${pct(sg.roas_base)}`,'e-xl');
+ gg.addEventListener('click',e=>{e.stopPropagation();st.sel=st.sel==='G'?null:'G';draw();detail()});
+ ['S','J','M'].forEach(id=>{const pl=PLANES.find(p=>p.id===id);const A=proj(0,0,pl.z);el('line',{x1:G.X,y1:G.Y+h,x2:A.X,y2:A.Y,class:'e-x',style:'opacity:.25'},svg)})}
+// 드래그로 돌리기
+(function(){const svg=$('#cv');let d=null;svg.addEventListener('pointerdown',e=>{st.moved=false;d={x:e.clientX,y:e.clientY,yaw:st.yaw,pitch:st.pitch};svg.classList.add('drag')});
+ window.addEventListener('pointermove',e=>{if(!d)return;if(Math.abs(e.clientX-d.x)+Math.abs(e.clientY-d.y)>4)st.moved=true;st.yaw=d.yaw+(e.clientX-d.x)*0.45;st.pitch=Math.max(6,Math.min(88,d.pitch-(e.clientY-d.y)*0.35));draw()});
+ const end=()=>{d=null;svg.classList.remove('drag')};window.addEventListener('pointerup',end);window.addEventListener('pointercancel',end)})();
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{const [y,p]=VIEWS[b.dataset.view];animateTo(y,p)});
+function fit(){const svg=$('#cv');const b=svg.getBBox();const W=1000,H=innerWidth<640?900:640,pad=30;const k=Math.max((b.width+pad*2)/W,(b.height+pad*2)/H);const w=W*k,h=H*k;svg.style.setProperty('--k',Math.max(1,k*1.1).toFixed(2));svg.setAttribute('viewBox',`${b.x+b.width/2-w/2} ${b.y+b.height/2-h/2} ${w} ${h}`);draw()}
+function animateTo(y,p){const y0=st.yaw,p0=st.pitch,t0=performance.now();const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const step=t=>{const k=reduce?1:Math.min(1,(t-t0)/450),e=1-Math.pow(1-k,3);st.yaw=y0+(y-y0)*e;st.pitch=p0+(p-p0)*e;draw();if(k<1)requestAnimationFrame(step);else fit()};requestAnimationFrame(step)}
+$('#gap').oninput=e=>{st.gap=+e.target.value;draw();fit()};
+$('#spin').onclick=()=>{st.spin=!st.spin;$('#spin').setAttribute('aria-pressed',st.spin);if(st.spin)spin()};
+function spin(){if(!st.spin)return;st.yaw+=0.15;draw();requestAnimationFrame(spin)}
+// ── 옆 패널: 고른 자리의 점검
+function card(c){return `<div class="iss ${c.status}"><div class="w">${esc(c.where)} · ${SN[c.status]}${c.urgency?`<span class="urg">${esc(c.urgency)}</span>`:''}</div><div class="q">${esc(c.q)}</div>${c.target?`<div class="tg">${esc(c.target)}</div>`:''}<div class="ev">${esc(c.evidence)}</div>${c.todo?`<div class="todo">→ ${esc(c.todo)}</div>`:''}</div>`}
+const ORD={bad:0,warn:1,ok:2,na:3};
+function detail(){const k=st.sel,box=$('#detail');
+ if(!k){const now=R.checks.filter(c=>c.node!=='G'&&c.status==='bad'&&(c.urgency==='즉시'||c.urgency==='당일'));const steps=L&&L.trail?L.trail.map(t=>`${esc(t.unit.name)} <b>${esc(t.decision.split(' ')[0])}</b>`).join(' → '):'';box.innerHTML=`<h2>요약</h2>${L&&L.stop?`<p class="small muted" style="margin:0">원인 자리</p><p style="margin:2px 0 8px;font-size:18px;font-weight:800">${esc(L.stop.name)}</p><p class="small">${steps}</p>`:''}${R.hypotheses&&R.hypotheses[0]?`<p class="small muted" style="margin:0">가장 그럴듯한 원인</p><p style="margin:2px 0 8px;font-size:18px;font-weight:800">${esc(R.hypotheses[0].name)}</p><p class="small">${esc(R.hypotheses[0].why)}</p>`:''}${R.hypotheses&&R.hypotheses[0]?`<p class="small muted" style="margin:12px 0 0">바꿀 방향</p><div class="iss warn"><div class="q">${esc(R.hypotheses[0].todo)}</div><div class="tg">${esc(R.hypotheses[0].where)}</div></div>`:''}<p class="small muted" style="margin:12px 0 0">바로 할 일</p>${now.slice(0,3).map(c=>`<div class="iss bad"><div class="w">${esc(c.where)}<span class="urg">${esc(c.urgency)}</span></div><div class="q">${esc(c.todo)}</div>${c.target?`<div class="tg">${esc(c.target)}</div>`:''}</div>`).join('')||'<p class="small">급한 일 없음</p>'}<p class="small muted" style="margin-top:12px">회로의 점을 누르면 그 자리의 점검이 열린다.</p>`;return}
+ if(INST[k]){const d=INST[k].d;const lv=INST[k].level==='campaign'?'캠페인':'광고세트';box.innerHTML=`<h2>${esc(d.name)} <span class="badge ${nodeStatus(k)}">${k===stopKey?'원인 자리':SN[nodeStatus(k)]}</span></h2>
+  <p class="small muted">매체 › ${lv} · 실제 단위</p><p class="small">어제 ROAS <b>${pct(d.roas_now)}</b> · 앞 기간 ${pct(d.roas_base)} · 하락률 ${pct(d.rate)}<br>잃은 매출 ${won(d.lost)} · 몫 <b>${pct(d.share)}</b> · 어제 광고비 ${won(d.spend)}</p>
+  ${R.checks.filter(c=>c.target&&c.target.indexOf(d.name)>=0).sort((a,b)=>ORD[a.status]-ORD[b.status]).map(card).join('')}`;return}
+ const list=R.checks.filter(c=>k==='J0'?c.q.startsWith('자사몰 전체'):c.node===k).sort((a,b)=>ORD[a.status]-ORD[b.status]);const s=k==='G'?'':(R.nodes||{})[k]||'na';
+ box.innerHTML=`<h2>${esc(labelOf(k))} ${s?`<span class="badge ${s}">${SN[s]}</span>`:''}</h2>${list.length?list.map(card).join(''):`<p class="muted small">이 자리는 이번 실행에서 보지 못했다 — 아래 '데이터 연동'에서 무엇이 있으면 켜지는지 본다.</p>`}`}
+// ── 아래 판들
+function render(){
+ $('#title').textContent=`ROAS 점검 회로 · ${R.advertiser}`;$('#subtitle').textContent=`메타 · ${R.date} · ${R.rhythm==='weekly'?'위클리 — 흐름이 어디서 꺾였나':'데일리 — 같아야 할 값이 그대로인가'}`;
+ const c={bad:0,warn:0,ok:0,na:0};R.checks.forEach(x=>c[x.status]++);$('#counts').innerHTML=Object.keys(c).map(k=>`<span class="cnt ${k}">${SN[k]} ${c[k]}</span>`).join('');
+ const s=R.signal;if(s){const worst=Object.entries(s.factors).filter(([k,v])=>v.effect!=null).sort((a,b)=>a[1].effect-b[1].effect)[0];
+  $('#signal').innerHTML=`<h2>신호판</h2><div class="big">${pct(s.roas_now)}<small>어제 ROAS · 앞 ${s.base_days}일 ${pct(s.roas_base)}</small></div><div class="small muted">광고비 ${won(s.spend_now)} · 매출 ${won(s.revenue_now)}${s.usual?` · 평소 하루 ${pct(s.usual.min)}~${pct(s.usual.max)}`:''}</div>
+  <div class="factors">${Object.entries(s.factors).map(([k,v])=>`<div class="f ${worst&&worst[0]===k&&v.effect<0?'top':''}"><div class="k">${FN[k]}</div><div class="v">${chg(v.change)}</div></div>`).join('')}</div><p class="small muted" style="margin:8px 0 0">ROAS = 클릭률 × 구매 전환율 × 객단가 ÷ 노출 단가</p>`}
+ else{$('#signal').innerHTML=`<h2>신호판 · 주별</h2><p class="small">${(R.weeks||[]).map((w,i)=>`${i===0?'이번 주':i+'주 전'} ${pct(w.roas)}`).join(' · ')}</p><div class="factors">${Object.entries(R.factors||{}).map(([k,v])=>`<div class="f"><div class="k">${FN[k]}</div><div class="v">${chg(v.change)}</div></div>`).join('')}</div>`}
+ if(R.hypotheses){$('#second').innerHTML=`<h2>원인 가설 · 근거 순</h2>${R.hypotheses.map(h=>`<div class="hyp"><b>${h.rank}. ${esc(h.name)}</b> <span class="muted small">근거 ${esc(h.strength)}</span><div class="small">${esc(h.where)} · ${esc(h.why)}</div><div class="small"><b>→ ${esc(h.todo)}</b></div></div>`).join('')||'<p class="muted">떨어진 숫자가 없다</p>'}`}
+ else if(L&&L.trail){$('#second').innerHTML=`<h2>원인 자리 찾기 <span class="muted small">잃은 매출이 몰린 쪽으로</span></h2><div class="trail">${L.trail.map((t,i)=>`<div class="step ${i===L.trail.length-1?'stop':''}"><b>${esc(t.unit.name)}</b><span class="dec">${esc(t.decision)}</span>${(t.children||[]).slice(0,4).map(k=>`<div class="bar"><span class="t">${esc(k.name)}</span><span class="b"><i style="width:${(k.share||0)*100}%"></i></span><span>${pct(k.share)}</span></div>`).join('')}</div>`).join('')}</div><p class="small" style="margin:10px 0 0">멈춘 자리: <b>${esc(L.stop.name)}</b></p>`}
+ const act=R.checks.filter(c=>c.node!=='G'&&(c.status==='bad'||c.status==='warn')).sort((a,b)=>ORD[a.status]-ORD[b.status]),rest=R.checks.filter(c=>c.node==='G'||c.status==='ok'||c.status==='na');
+ $('#todo').innerHTML=`<h2>할 일 ${act.length}건</h2><div class="issues">${act.map(card).join('')||'<p class="muted">할 일이 없다</p>'}</div><details><summary>정상 · 못 봄 ${rest.length}건</summary><div class="issues">${rest.map(card).join('')}</div></details>`;
+ $('#sources').innerHTML=`<h2>데이터 연동 <span class="muted small">회로의 자리를 켜려면 필요한 연결</span></h2><table class="stack"><thead><tr><th>상태</th><th>데이터</th><th>켜지는 자리</th><th>연결 방법</th></tr></thead><tbody>${R.sources.map(x=>`<tr><td data-k="상태"><span class="${x.on?'on':'off'}">${x.on?'연결됨':'없음'}</span></td><td data-k="데이터"><b>${esc(x.name)}</b></td><td data-k="켜지는 자리">${x.unlocks.map(u=>`<span class="chip">${esc(u==='G'?'신호판':labelOf(u))}</span>`).join('')}</td><td data-k="연결 방법">${esc(x.how)}</td></tr>`).join('')}</tbody></table>`}
+render();draw();fit();detail();
+$('#cv').addEventListener('click',()=>{if(st.moved)return;if(st.sel){st.sel=null;draw();detail()}});
+let t=null;try{t=localStorage.getItem('roas-board-theme')}catch(e){}if(t)document.documentElement.setAttribute('data-theme',t);
+$('#theme').onclick=()=>{const c=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('roas-board-theme',n)}catch(e){}};
+})();
+</script></body></html>

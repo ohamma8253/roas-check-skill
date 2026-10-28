@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROAS 점검 회로</title>
+<style>
+:root{--bg:#f3f2ee;--surface:#fff;--surface-2:#f0eee8;--text:#1c1c1a;--muted:#67665f;--line:#d9d6cc;--wire:#b9b5a8;--accent:#2f5fd0;
+--bad:#d4480f;--bad-soft:#fde6d6;--warn:#b07d14;--warn-soft:#f7eed9;--ok:#1f8a5b;--ok-soft:#e1f2e8;--na:#8b8a83;--na-soft:#efeeea;--skip:#c9c6bd;
+--pass:#1f8a5b;--path:#d4480f;--S:#a8741a;--J:#1f8a5b;--M:#2f5fd0;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111214;--surface:#1a1c20;--surface-2:#23262c;--text:#e9e8e3;--muted:#a2a19a;--line:#32353c;--wire:#4a4e57;--accent:#86a8ff;
+--bad:#ff8a4c;--bad-soft:#3e2318;--warn:#e3b35f;--warn-soft:#2e2717;--ok:#5fd09c;--ok-soft:#15261d;--na:#7d7c76;--na-soft:#22242a;--skip:#3e4148;--pass:#5fd09c;--path:#ff8a4c;--S:#e3b35f;--J:#5fd09c;--M:#86a8ff;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3)}}
+:root[data-theme="dark"]{--bg:#111214;--surface:#1a1c20;--surface-2:#23262c;--text:#e9e8e3;--muted:#a2a19a;--line:#32353c;--wire:#4a4e57;--accent:#86a8ff;
+--bad:#ff8a4c;--bad-soft:#3e2318;--warn:#e3b35f;--warn-soft:#2e2717;--ok:#5fd09c;--ok-soft:#15261d;--na:#7d7c76;--na-soft:#22242a;--skip:#3e4148;--pass:#5fd09c;--path:#ff8a4c;--S:#e3b35f;--J:#5fd09c;--M:#86a8ff;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14.5px/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+.wrap{max-width:1440px;margin:0 auto;padding:20px 16px 70px}h1{font-size:22px;margin:0}h2{font-size:15.5px;margin:0 0 10px}.muted{color:var(--muted)}.small{font-size:12.5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+.ver{font-size:11.5px;font-weight:800;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted);vertical-align:middle;margin-left:6px}
+/* 판정 띠 */
+.verdict{display:grid;grid-template-columns:auto 1fr auto;gap:10px 18px;align-items:center;margin:12px 0 14px;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--bad);box-shadow:var(--shadow)}
+.verdict.calm{border-left-color:var(--ok)}@media(max-width:820px){.verdict{grid-template-columns:1fr}}
+.verdict .k{font-size:12px;color:var(--muted)}.verdict .v{font-size:19px;font-weight:800;line-height:1.3}.verdict .why{font-size:13px}
+.counts{display:flex;flex-wrap:wrap;gap:6px}.cnt{font-size:12.5px;font-weight:800;padding:3px 10px;border-radius:999px}
+.cnt.bad{background:var(--bad-soft);color:var(--bad)}.cnt.warn{background:var(--warn-soft);color:var(--warn)}.cnt.ok{background:var(--ok-soft);color:var(--ok)}.cnt.na{background:var(--na-soft);color:var(--na)}.cnt.skip{background:var(--surface-2);color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:'circ side' 'board side' 'todo side' 'src side';gap:14px;align-items:start}
+#circ{grid-area:circ}.side{grid-area:side}#board{grid-area:board}#todo{grid-area:todo}#sources{grid-area:src}
+@media(max-width:1180px){.layout{grid-template-columns:1fr;grid-template-areas:'circ' 'side' 'board' 'todo' 'src'}}
+.side{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px}@media(max-width:1180px){.side{position:static}}
+/* 회로도 */
+.circ{position:relative;padding:16px}.circ h2{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:190px 148px minmax(0,1fr);gap:18px 30px;position:relative;z-index:1}
+.sig{grid-row:1/span 3;align-self:stretch;display:flex;flex-direction:column;gap:8px;border:2px solid var(--text);border-radius:12px;padding:12px;background:var(--surface)}
+.sig .t{font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--muted)}.sig .big{font-size:28px;font-weight:800;line-height:1.1}.sig .big small{font-size:12.5px;color:var(--muted);font-weight:600;display:block}
+.fac{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12.5px}.fac .n{color:var(--muted)}.fac .v{font-weight:800;text-align:right}.fac .v.hot{color:var(--bad)}
+.lane-label{font-size:12px;font-weight:800;margin-bottom:6px;display:flex;gap:6px;align-items:baseline}.lane-label span{font-weight:600;color:var(--muted)}
+.gate{position:relative;border:2px dashed var(--wire);border-radius:12px;padding:10px;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
+.gate .q{font-size:12.5px;font-weight:800}.gate .st{font-size:12px;font-weight:800;margin-top:4px}.gate .ev{font-size:11.5px;color:var(--muted);margin-top:2px}
+.gate.pass{border-color:var(--pass);border-style:solid}.gate.pass .st{color:var(--pass)}.gate.hit{border-color:var(--bad);border-style:solid;background:var(--bad-soft)}.gate.hit .st{color:var(--bad)}.gate.na .st{color:var(--na)}
+.lane{min-width:0}.row{display:flex;gap:22px;align-items:stretch}.row+.rail{margin-top:12px}
+.node{position:relative;flex:1 1 0;min-width:0;border:1.5px solid var(--line);border-radius:11px;padding:8px 9px 7px;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:inherit;display:flex;flex-direction:column;gap:3px}
+.node:hover{border-color:var(--muted)}.node[aria-pressed="true"]{outline:2.5px solid var(--accent);outline-offset:1px}
+.node .top{display:flex;align-items:center;gap:6px}.lamp{width:11px;height:11px;border-radius:50%;flex:none;box-shadow:0 0 0 2px var(--surface)}
+.lamp.bad{background:var(--bad);box-shadow:0 0 0 3px var(--bad-soft)}.lamp.warn{background:var(--warn)}.lamp.ok{background:var(--ok)}.lamp.na{background:transparent;border:2px dashed var(--na)}.lamp.skip{background:var(--skip)}
+.node .nm{font-weight:800;font-size:13px;line-height:1.25}.node .tally{display:flex;flex-wrap:wrap;gap:3px;font-size:11px;font-weight:800}
+.node .tally i{font-style:normal;padding:0 5px;border-radius:5px}.tally .bad{background:var(--bad-soft);color:var(--bad)}.tally .warn{background:var(--warn-soft);color:var(--warn)}.tally .ok{background:var(--ok-soft);color:var(--ok)}.tally .na{background:var(--na-soft);color:var(--na)}.tally .skip{color:var(--muted)}
+.node.bad{border-color:var(--bad)}.node.warn{border-color:var(--warn)}.node.stop{border-width:2.5px;border-color:var(--bad);background:var(--bad-soft)}
+.node .stoptag{font-size:10.5px;font-weight:800;color:#fff;background:var(--bad);border-radius:5px;padding:0 6px;align-self:flex-start}
+.inst{display:flex;flex-direction:column;gap:2px;margin-top:3px;font-size:11px}.inst div{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:4px;align-items:center}
+.inst .nmx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.inst .nmx b{color:var(--bad)}.inst .bar{grid-column:1/-1;height:4px;border-radius:2px;background:var(--line);position:relative;margin-bottom:2px}.inst .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--bad)}
+.rail .node{flex:none;width:100%;border-style:dashed;flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap}.rail .node .hint{font-size:11.5px;color:var(--muted)}
+svg.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
+.w{fill:none;stroke:var(--wire);stroke-width:1.6}.w.dash{stroke-dasharray:4 4}.w.x{stroke-dasharray:5 5;stroke-width:1.3}.wl{font-size:10.5px;fill:var(--muted)}
+.w.pass{stroke:var(--pass);stroke-width:2.6}.w.path{stroke:var(--path);stroke-width:3.2}
+.w.flow{stroke-dasharray:7 6;animation:flow 1.1s linear infinite}@keyframes flow{to{stroke-dashoffset:-13}}@media(prefers-reduced-motion:reduce){.w.flow{animation:none}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:12px;position:relative;z-index:1}.legend span{display:inline-flex;align-items:center;gap:5px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.sig{grid-row:auto}.row{flex-wrap:wrap;gap:8px}.row .node{flex:1 1 140px}svg.wires{display:none}.gate{margin-bottom:-6px}}
+/* 점검반 */
+.panel-sum{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0 4px;background:var(--surface-2)}.panel-sum i{display:block;height:100%}
+.pb{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}.pb:last-child{border:0}
+.pb .nm{font-size:13px;font-weight:700}.pb .nm span{font-size:11.5px;color:var(--muted);font-weight:600;margin-right:4px}
+.lamps{display:flex;flex-wrap:wrap;gap:5px}.lp{width:22px;height:22px;border-radius:6px;border:0;cursor:pointer;padding:0;position:relative}
+.lp.bad{background:var(--bad)}.lp.warn{background:var(--warn)}.lp.ok{background:var(--ok)}.lp.na{background:var(--na-soft);border:2px dashed var(--na)}.lp.skip{background:var(--surface-2);border:1.5px solid var(--skip)}
+.lp.xtra::after{content:"+";position:absolute;inset:0;color:#fff;font-size:12px;font-weight:800;line-height:22px;text-align:center}
+.lp[aria-pressed="true"]{outline:2.5px solid var(--accent);outline-offset:1px}.pb .ct{font-size:11.5px;color:var(--muted);white-space:nowrap}
+@media(max-width:640px){.pb{grid-template-columns:1fr}.pb .ct{order:-1}}
+/* 옆 패널 · 목록 */
+.iss{border:1px solid var(--line);border-left:5px solid var(--na);border-radius:10px;padding:9px 11px;margin-top:8px;background:var(--surface)}
+.iss.bad{border-left-color:var(--bad)}.iss.warn{border-left-color:var(--warn)}.iss.ok{border-left-color:var(--ok)}.iss.skip{border-left-color:var(--skip)}
+.iss .w2{font-size:11.5px;color:var(--muted)}.iss .q{font-weight:800}.iss .tg{font-size:12px;color:var(--muted)}.iss .ev{font-size:12.5px;margin-top:3px}.iss .todo{font-size:12.5px;font-weight:700;margin-top:3px}
+.urg{font-size:10.5px;font-weight:800;padding:0 6px;border-radius:999px;background:var(--bad-soft);color:var(--bad);margin-left:5px}
+.badge{font-size:11.5px;font-weight:800;padding:1px 8px;border-radius:999px;background:var(--surface-2)}.badge.bad{background:var(--bad-soft);color:var(--bad)}.badge.warn{background:var(--warn-soft);color:var(--warn)}.badge.ok{background:var(--ok-soft);color:var(--ok)}.badge.na{color:var(--na)}
+.issues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}@media(max-width:860px){.issues{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;vertical-align:top;padding:7px 8px;border-bottom:1px solid var(--line)}th{font-size:11.5px;color:var(--muted)}
+.on{color:var(--ok);font-weight:800}.off{color:var(--na);font-weight:800}.chip{font-size:11.5px;padding:1px 7px;border-radius:7px;border:1px solid var(--line);margin:0 4px 4px 0;display:inline-block}
+@media(max-width:640px){table.stack thead{display:none}table.stack tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}table.stack td{display:block;border:0;padding:2px 0}table.stack td::before{content:attr(data-k);display:block;font-size:11.5px;color:var(--muted);font-weight:700}}
+.sec{margin-top:0}details>summary{cursor:pointer;font-weight:800;margin-top:10px}.hyp{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:8px}
+.theme{position:fixed;right:14px;bottom:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:9px;padding:6px 12px;cursor:pointer;z-index:5}
+</style></head><body>
+<div class="wrap">
+  <div><h1 id="title"></h1><div class="muted" id="subtitle"></div></div>
+  <div class="verdict" id="verdict"></div>
+  <div class="layout">
+      <div class="card circ" id="circ"><h2><span>점검 회로 <span class="muted small">신호판 → 관문 → 자리. 굵은 선이 원인 자리까지 간 길</span></span></h2>
+        <svg class="wires" id="wires" aria-hidden="true"></svg>
+        <div class="grid" id="grid"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    <div class="side"><div class="card" id="detail"></div><div class="card" id="trace"></div></div>
+      <div class="card sec" id="board"></div>
+      <div class="card sec" id="todo"></div>
+      <div class="card sec" id="sources"></div>
+  </div>
+</div>
+<button class="theme" id="theme" aria-label="밝기 바꾸기">◐</button>
+<script id="data" type="application/json">__DATA__</script>
+<script id="cat" type="application/json">__CAT__</script>
+<script>
+(function(){
+const R=JSON.parse(document.getElementById('data').textContent),CAT=JSON.parse(document.getElementById('cat').textContent);
+const $=s=>document.querySelector(s),esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct=(x,d=0)=>x==null?'—':(x*100).toFixed(d)+'%',won=x=>x==null?'—':Math.round(x).toLocaleString('ko-KR');
+const chg=x=>x==null?'—':Math.abs(x)<0.005?'변화 없음':(x>0?'+':'')+(x*100).toFixed(1)+'%';
+const SN={bad:'이상',warn:'확인 필요',ok:'정상',na:'못 봄',skip:'안 봄'},ORD={bad:0,warn:1,ok:2,na:3,skip:4};
+const R_=R.rhythm==='weekly'?'W':'D';
+const LANES=[
+ {id:'S',name:'시장',lens:'거시',gate:'업종도 같이 떨어졌나?',nodes:[['S1','달력 · 시즌'],['S2','수요'],['S3','경매 · 경쟁'],['S4','업종 흐름'],['S5','플랫폼']]},
+ {id:'J',name:'자사',lens:'웹 상태',gate:'자사몰 전체도 떨어졌나?',nodes:[['J1','도착'],['J2','랜딩'],['J3','상품'],['J4','장바구니'],['J5','결제'],['J6','구매 완료']],rail:['JT','측정 태그','단계마다 메타로 이벤트가 나가나']},
+ {id:'M',name:'매체',lens:'메타 구조',gate:'메타 안 어디에 몰렸나?',nodes:[['M1','계정'],['M2','캠페인'],['M3','광고세트'],['M4','광고(소재)']],rail:['MX','단면','지면 · 기기 · 연령 · 소구점으로 가로질러 묶기']}];
+const LINKS={M4:[['J1','연결 주소 — 광고가 보내는 사이트 주소']],J1:[['M4','연결 주소 — 이 주소로 보내는 광고']],JT:[['M1','전환 신호 — 픽셀 · 서버 이벤트가 계정 학습에 쓰인다']],M1:[['JT','전환 신호 — 사이트 측정 태그'],['J3','카탈로그 — 상품 정보']],J3:[['M1','카탈로그 — 메타 카탈로그 상품']],S3:[['M3','경매 — 광고세트의 타겟 · 입찰']],M3:[['S3','경매 — 시장의 노출 단가']]};
+const NAME={G:'신호판'};LANES.forEach(l=>{l.nodes.forEach(([i,n])=>NAME[i]=l.name+' › '+n);if(l.rail)NAME[l.rail[0]]=l.name+' › '+l.rail[1]});
+// ── 체크리스트(이번 리듬)와 실행 결과를 맞춘다: 램프 = 체크리스트 항목
+const norm=s=>s.replace(/\s/g,'');
+const lamps={};const used=new Set();
+CAT.filter(c=>c.r===R_).forEach(c=>{
+ let hits=R.checks.map((x,i)=>[x,i]).filter(([x])=>x.node===c.node&&norm(x.q)===norm(c.q));
+ if(!hits.length&&c.basis==='어제와 같나'){hits=R.checks.map((x,i)=>[x,i]).filter(([x])=>x.node===c.node&&x.q==='어제와 같나?').map(([x,i])=>[Object.assign({},x,{q:c.q}),i])}
+ if(!hits.length&&c.node==='G'&&c.q.startsWith('업종도'))hits=R.checks.map((x,i)=>[x,i]).filter(([x])=>x.node==='S4'&&x.q.startsWith('같은 업종'));
+ hits.forEach(([,i])=>used.add(i));
+ if(!hits.length&&c.node==='G'&&c.q.startsWith('어느 숫자가')&&(R.signal||R.factors)){const f=(R.signal||{}).factors||R.factors;const w=Object.entries(f).filter(([k,v])=>v.effect!=null).sort((a,b)=>a[1].effect-b[1].effect)[0];const FN={cpm:'노출 단가',ctr:'클릭률',cvr:'구매 전환율',aov:'객단가'};hits=[[{node:'G',where:'신호판',q:c.q,status:'ok',status_name:'정상',evidence:Object.entries(f).map(([k,v])=>FN[k]+' '+chg(v.change)).join(' · ')+(w?` ← ${FN[w[0]]} 몫이 가장 크다`:''),todo:'',basis:c.basis,target:'',urgency:''}]]}
+ const rs=hits.map(h=>h[0]);const st=rs.length?rs.map(x=>x.status).sort((a,b)=>ORD[a]-ORD[b])[0]:'skip';
+ (lamps[c.node]=lamps[c.node]||[]).push({c,rs,st});});
+R.checks.forEach((x,i)=>{if(used.has(i)||x.q==='어제와 같나?')return;(lamps[x.node]=lamps[x.node]||[]).push({c:{node:x.node,q:x.q,where:'',bad:'',todo:x.todo,basis:x.basis,extra:true},rs:[x],st:x.status})});
+const tally=k=>{const t={bad:0,warn:0,ok:0,na:0,skip:0};(lamps[k]||[]).forEach(l=>t[l.st]++);return t};
+const worst=k=>{const t=tally(k);return ['bad','warn','ok','na'].find(s=>t[s])||'skip'};
+// ── 관문과 원인 자리
+const L=R.location,trail=L&&L.trail||[];const find=(n,q)=>R.checks.find(x=>x.node===n&&x.q.startsWith(q));
+function gate(lid){
+ if(R_==='W'){const h=R.hypotheses&&R.hypotheses[0];if(!h)return {st:'na',txt:'—',ev:''};const hit=h.where.indexOf(LANES.find(l=>l.id===lid).name)===0;return hit?{st:'hit',txt:'1순위 가설 자리',ev:h.name}:{st:'na',txt:'위클리는 관문 대신 가설로 본다',ev:''}}
+ if(lid==='S'){const c=find('S4','같은 업종');if(!c)return {st:'na',txt:'못 봄',ev:'업종 묶음 없음'};return c.status==='bad'?{st:'hit',txt:'걸림 · 시장 원인 가능',ev:c.evidence}:{st:'pass',txt:'통과 · 우리만의 일',ev:c.evidence}}
+ if(lid==='J'){const c=find('G','자사몰 전체');if(!c)return {st:'na',txt:'못 봄',ev:'자사몰 매출 없음'};return c.status!=='ok'?{st:'hit',txt:'걸림 · 자사 원인 가능',ev:c.evidence}:{st:'pass',txt:'통과 · 메타 쪽이 큼',ev:c.evidence}}
+ if(lid==='M'){if(!trail.length)return {st:'na',txt:'못 봄',ev:''};return {st:'hit',txt:'몰림을 따라 내려감',ev:trail.map(t=>`${t.unit.name} ${t.decision.split(' ')[0]}`).join(' → ')}}}
+const LV={account:'M1',campaign:'M2',adset:'M3',ad:'M4'};
+let stopNode=null;if(L&&L.stop)stopNode=LV[L.stop.level]||null;
+if(R_==='W'&&R.hypotheses&&R.hypotheses[0]){const w=R.hypotheses[0].where;const m={'매체 › 광고(소재)':'M4','매체 › 광고세트':'M3','매체 › 계정':'M1','자사 › 랜딩':'J2','자사 › 상품':'J3','시장 › 경매':'S3','시장 › 수요':'S2'};for(const k in m){if(w.indexOf(k)===0){stopNode=m[k];break}}}
+let sel=null;
+// ── 그리기
+function nodeCard(id,name,hint,rail){const t=tally(id),st=worst(id),stop=id===stopNode;
+ let inst='';if(R_==='D'&&trail.length){const lvl=id==='M2'?0:id==='M3'?1:-1;const tr=trail[lvl];
+  if(tr&&tr.children&&tr.children.length){inst=`<div class="inst">${tr.children.slice(0,3).map(k=>`<div><span class="nmx">${k.id===(trail[lvl+1]||{unit:{}}).unit.id||k.id===L.stop.id?'<b>':''}${esc(k.name)}${k.id===(trail[lvl+1]||{unit:{}}).unit.id||k.id===L.stop.id?'</b>':''}</span><span>${pct(k.share)}</span><span class="bar"><i style="width:${(k.share||0)*100}%"></i></span></div>`).join('')}<div class="muted">${esc(tr.decision.split(' ')[0])}${tr.decision==='퍼짐'?' → 여기서 멈춤':''}</div></div>`}}
+ return `<button class="node ${st} ${stop?'stop':''}" id="n-${id}" data-id="${id}" aria-pressed="${sel===id}" title="${esc(NAME[id])} — ${SN[st]}">
+  <span class="top"><span class="lamp ${st}"></span><span class="nm">${esc(name)}</span></span>${stop?`<span class="stoptag">${R_==='D'?'원인 자리':'1순위 가설'}</span>`:''}
+  ${rail&&hint?`<span class="hint">${esc(hint)}</span>`:''}
+  <span class="tally">${['bad','warn','ok','na','skip'].filter(s=>t[s]).map(s=>`<i class="${s}">${SN[s]} ${t[s]}</i>`).join('')}</span>${inst}</button>`}
+function render(){
+ $('#title').innerHTML=`ROAS 점검 회로 · ${esc(R.advertiser)}<span class="ver">v2</span>`;$('#subtitle').textContent=`메타 · ${R.date} · ${R_==='D'?'데일리 — 같아야 할 값이 그대로인가':'위클리 — 흐름이 어디서 꺾였나'}`;
+ const all=Object.values(lamps).flat();const c={bad:0,warn:0,ok:0,na:0,skip:0};all.forEach(l=>c[l.st]++);
+ const now=R.checks.filter(x=>x.node!=='G'&&x.status==='bad'&&x.urgency==='즉시');
+ const head=R_==='D'?(L&&L.stop?{k:'원인 자리',v:L.stop.name,why:trail.map(t=>`${t.unit.name} ${t.decision.split(' ')[0]}`).join(' → ')}:{k:'원인 자리',v:'찾지 못함',why:''}):(R.hypotheses&&R.hypotheses[0]?{k:'가장 그럴듯한 원인',v:R.hypotheses[0].name,why:R.hypotheses[0].why}:{k:'흐름',v:'떨어진 숫자 없음',why:''});
+ $('#verdict').className='verdict'+(c.bad?'':' calm');
+ $('#verdict').innerHTML=`<div><div class="k">${head.k}</div><div class="v">${esc(head.v)}</div></div><div class="why">${esc(head.why)}${now.length?`<div style="margin-top:4px"><b>즉시:</b> ${now.map(x=>esc(x.todo.split('.')[0])).join(' / ')}</div>`:''}</div>
+  <div class="counts">${Object.keys(c).filter(k=>c[k]).map(k=>`<span class="cnt ${k}">${SN[k]} ${c[k]}</span>`).join('')}</div>`;
+ const s=R.signal;let sig;
+ if(s){const wk=Object.entries(s.factors).filter(([k,v])=>v.effect!=null).sort((a,b)=>a[1].effect-b[1].effect)[0];
+  sig=`<div class="t">신호판 · 입력</div><div class="big">${pct(s.roas_now)}<small>어제 ROAS · 앞 ${s.base_days}일 ${pct(s.roas_base)}</small></div>
+  <div class="fac">${[['cpm','노출 단가'],['ctr','클릭률'],['cvr','구매 전환율'],['aov','객단가']].map(([k,n])=>`<span class="n">${n}</span><span class="v ${wk&&wk[0]===k&&s.factors[k].effect<0?'hot':''}">${chg(s.factors[k].change)}</span>`).join('')}</div>
+  <div class="small muted">광고비 ${won(s.spend_now)} · 매출 ${won(s.revenue_now)}</div>`}
+ else{const f=R.factors||{};const wk=Object.entries(f).filter(([k,v])=>v.effect!=null).sort((a,b)=>a[1].effect-b[1].effect)[0];
+  sig=`<div class="t">신호판 · 입력(주별)</div><div class="big">${pct((R.weeks||[{}])[0].roas)}<small>이번 주 ROAS · ${(R.weeks||[]).slice(1).map(w=>pct(w.roas)).join(' · ')}</small></div>
+  <div class="fac">${[['cpm','노출 단가'],['ctr','클릭률'],['cvr','구매 전환율'],['aov','객단가']].map(([k,n])=>`<span class="n">${n}</span><span class="v ${wk&&wk[0]===k&&f[k]&&f[k].effect<0?'hot':''}">${f[k]?chg(f[k].change):'—'}</span>`).join('')}</div>`}
+ let g=`<div class="sig" id="n-G" data-id="G">${sig}<button class="node ${worst('G')}" data-id="G" aria-pressed="${sel==='G'}" style="flex:none"><span class="top"><span class="lamp ${worst('G')}"></span><span class="nm">신호판 점검</span></span><span class="tally">${['bad','warn','ok','na','skip'].filter(k=>tally('G')[k]).map(k=>`<i class="${k}">${SN[k]} ${tally('G')[k]}</i>`).join('')}</span></button></div>`;
+ LANES.forEach(l=>{const gt=gate(l.id);
+  g+=`<div><div class="lane-label" style="color:var(--${l.id})">${l.name}<span>${l.lens}</span></div><button class="gate ${gt.st}" id="g-${l.id}" data-gate="${l.id}"><div class="q">${esc(l.gate)}</div><div class="st">${esc(gt.txt)}</div>${gt.ev?`<div class="ev">${esc(gt.ev)}</div>`:''}</button></div>`;
+  g+=`<div class="lane"><div class="lane-label">&nbsp;</div><div class="row">${l.nodes.map(([i,n])=>nodeCard(i,n)).join('')}</div>${l.rail?`<div class="rail">${nodeCard(l.rail[0],l.rail[1],l.rail[2],true)}</div>`:''}</div>`});
+ $('#grid').innerHTML=g;
+ $('#legend').innerHTML=`<span><span class="lamp bad"></span>이상</span><span><span class="lamp warn"></span>확인 필요</span><span><span class="lamp ok"></span>정상</span><span><span class="lamp na"></span>못 봄(데이터 없음)</span><span><span class="lamp skip"></span>안 봄(이번 실행에 없는 점검)</span><span><span class="lp ok xtra" style="width:16px;height:16px;display:inline-block;border-radius:4px"></span>체크리스트 밖 추가 점검</span><span><svg width="34" height="8"><path d="M0,4 H34" class="w pass"/></svg>관문 통과</span><span><svg width="34" height="8"><path d="M0,4 H34" class="w path"/></svg>원인 자리까지</span>`;
+ document.querySelectorAll('#grid [data-id]').forEach(b=>b.onclick=e=>{e.stopPropagation();pick(b.dataset.id)});
+ document.querySelectorAll('#grid [data-gate]').forEach(b=>b.onclick=()=>pick('gate:'+b.dataset.gate));
+ boardPanel();todoPanel();sources();detail();trace();requestAnimationFrame(wires)}
+function pick(id){sel=sel===id?null:id;render();if(sel&&innerWidth<=1180)$('#detail').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}
+// ── 선 긋기(카드 위치를 재서)
+function wires(){const svg=$('#wires'),box=$('#circ').getBoundingClientRect();svg.innerHTML='';if(innerWidth<=860)return;
+ const r=id=>{const e=document.getElementById(id);if(!e)return null;const b=e.getBoundingClientRect();return {l:b.left-box.left,r:b.right-box.left,t:b.top-box.top,b:b.bottom-box.top,cx:(b.left+b.right)/2-box.left,cy:(b.top+b.bottom)/2-box.top}};
+ const P=(d,c)=>{const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);p.setAttribute('class','w '+(c||''));svg.appendChild(p);return p};
+ const T=(x,y,s)=>{const t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('class','wl');t.textContent=s;svg.appendChild(t)};
+ const G=r('n-G');const gs=['S','J','M'].map(i=>r('g-'+i));
+ // 신호판 → 관문(버스)
+ const bx=(G.r+gs[0].l)/2;P(`M${G.r},${G.cy} H${bx}`,'pass');
+ gs.forEach((g,i)=>{const st=gate(['S','J','M'][i]).st;P(`M${bx},${G.cy} V${g.cy} H${g.l}`,st==='pass'?'pass':st==='hit'?'path':'')});
+ // 관문 → 첫 자리, 자리 사이
+ LANES.forEach((l,li)=>{const g=gs[li];const ids=l.nodes.map(n=>n[0]);const f=r('n-'+ids[0]);const hit=gate(l.id).st==='hit'&&R_==='D'&&l.id==='M';
+  P(`M${g.r},${g.cy} H${f.l}`,hit?'path flow':'');
+  for(let i=0;i<ids.length-1;i++){const a=r('n-'+ids[i]),b=r('n-'+ids[i+1]);const onPath=hit&&stopNode&&ids.indexOf(stopNode)>i;P(`M${a.r},${a.cy} H${b.l}`,onPath?'path flow':'')}
+  if(l.rail){const rl=r('n-'+l.rail[0]);(l.id==='J'?ids:['M2','M3','M4']).forEach(id=>{const a=r('n-'+id);P(`M${a.cx},${a.b} V${rl.t}`,'dash')})}});
+ // 위클리: 신호판 → 가설 자리
+ if(R_==='W'&&stopNode){const lid=stopNode[0];const g=gs[['S','J','M'].indexOf(lid)];const a=r('n-'+stopNode);P(`M${g.r},${g.cy} H${a.l-6}`,'path flow')}
+ // 레이어 사이 맞닿는 곳
+ const x=(a,b,lab)=>{const A=r('n-'+a),B=r('n-'+b);if(!A||!B)return;const y1=A.t,y2=B.b;P(`M${A.cx},${y1} C${A.cx},${y1-30} ${B.cx},${y2+30} ${B.cx},${y2}`,'x');T((A.cx+B.cx)/2+4,(y1+y2)/2,lab)};
+}
+addEventListener('resize',()=>requestAnimationFrame(wires));
+// ── 점검반: 체크리스트 램프
+function boardPanel(){const all=Object.values(lamps).flat();const c={bad:0,warn:0,ok:0,na:0,skip:0};all.forEach(l=>c[l.st]++);const n=all.length;
+ const col={bad:'var(--bad)',warn:'var(--warn)',ok:'var(--ok)',na:'var(--na)',skip:'var(--skip)'};
+ let h=`<h2>점검반 <span class="muted small">체크리스트 ${CAT.filter(x=>x.r===R_).length}개(${R_==='D'?'데일리':'위클리'}) 중 이번 실행에서 켜진 것 — 램프를 누르면 그 점검</span></h2>
+ <div class="panel-sum">${Object.keys(c).filter(k=>c[k]).map(k=>`<i style="width:${c[k]/n*100}%;background:${col[k]}" title="${SN[k]} ${c[k]}"></i>`).join('')}</div>
+ <div class="small muted">${Object.keys(c).filter(k=>c[k]).map(k=>`${SN[k]} ${c[k]}`).join(' · ')} — '안 봄'은 이번 실행에 그 점검을 돌릴 데이터 · 질문이 없었다는 뜻</div>`;
+ const order=['G'].concat(...LANES.map(l=>l.nodes.map(n=>n[0]).concat(l.rail?[l.rail[0]]:[])));
+ h+=order.filter(id=>lamps[id]&&lamps[id].length).map(id=>{const ls=lamps[id];const t=tally(id);const [lay,nm]=NAME[id].includes(' › ')?NAME[id].split(' › '):['',NAME[id]];
+  return `<div class="pb"><div class="nm"><span>${lay}</span>${esc(nm)}</div><div class="lamps">${ls.map((l,i)=>`<button class="lp ${l.st} ${l.c.extra?'xtra':''}" data-lamp="${id}:${i}" aria-pressed="${sel===id+':'+i}" title="${esc(l.c.q)} — ${SN[l.st]}" aria-label="${esc(l.c.q)} ${SN[l.st]}"></button>`).join('')}</div><div class="ct">${['bad','warn','ok','na','skip'].filter(s=>t[s]).map(s=>`${SN[s]} ${t[s]}`).join(' · ')}</div></div>`}).join('');
+ $('#board').innerHTML=h;document.querySelectorAll('[data-lamp]').forEach(b=>b.onclick=()=>pick(b.dataset.lamp))}
+// ── 옆 패널
+function card(x){return `<div class="iss ${x.status}"><div class="w2">${esc(x.where)} · ${SN[x.status]}${x.urgency?`<span class="urg">${esc(x.urgency)}</span>`:''}</div><div class="q">${esc(x.q)}</div>${x.target?`<div class="tg">${esc(x.target)}</div>`:''}<div class="ev">${esc(x.evidence)}</div>${x.todo?`<div class="todo">→ ${esc(x.todo)}</div>`:''}</div>`}
+function lampCard(l){if(l.rs.length)return l.rs.map(card).join('');return `<div class="iss skip"><div class="w2">${SN.skip} · ${esc(l.c.basis)}</div><div class="q">${esc(l.c.q)}</div><div class="ev"><b>보는 곳</b> ${esc(l.c.where)}</div><div class="ev"><b>이상 신호</b> ${esc(l.c.bad)}</div><div class="todo">→ ${esc(l.c.todo)}</div></div>`}
+function detail(){const box=$('#detail');
+ if(!sel){box.innerHTML=`<h2>자리를 고르세요</h2><p class="small muted">회로의 카드 · 관문, 점검반의 램프를 누르면 그 점검의 근거와 할 일이 여기에 열린다.</p>${R.checks.filter(x=>x.node!=='G'&&x.status==='bad').slice(0,3).map(card).join('')}`;return}
+ if(sel.startsWith('gate:')){const lid=sel.slice(5),l=LANES.find(x=>x.id===lid),gt=gate(lid);box.innerHTML=`<h2>${l.name} 관문 <span class="badge ${gt.st==='hit'?'bad':gt.st==='pass'?'ok':'na'}">${esc(gt.txt)}</span></h2><p class="small"><b>${esc(l.gate)}</b></p><p class="small">${esc(gt.ev||'판정할 데이터가 없다')}</p><p class="small muted">관문은 '어디부터 볼까'를 가르는 자리다. 통과하면 다음 레이어로, 걸리면 이 레이어의 자리부터 본다.</p>`;return}
+ if(sel.includes(':')){const [id,i]=sel.split(':');const l=lamps[id][+i];box.innerHTML=`<h2>${esc(NAME[id])}</h2>${lampCard(l)}`;return}
+ const ls=(lamps[sel]||[]).slice().sort((a,b)=>ORD[a.st]-ORD[b.st]);const st=worst(sel);
+ box.innerHTML=`<h2>${esc(NAME[sel])} <span class="badge ${st}">${SN[st]}</span></h2>${(LINKS[sel]||[]).map(([t,txt])=>`<div class="small muted">맞닿는 곳 · <b>${esc(NAME[t])}</b> — ${esc(txt.split(' — ')[1])}</div>`).join('')}${ls.filter(l=>l.st!=='skip').map(lampCard).join('')}${ls.some(l=>l.st==='skip')?`<details><summary>안 본 점검 ${ls.filter(l=>l.st==='skip').length}개</summary>${ls.filter(l=>l.st==='skip').map(lampCard).join('')}</details>`:''}`}
+function trace(){const box=$('#trace');
+ if(R_==='W'){box.innerHTML=`<h2>원인 가설 · 근거 순</h2>${(R.hypotheses||[]).map(h=>`<div class="hyp"><b>${h.rank}. ${esc(h.name)}</b> <span class="muted small">근거 ${esc(h.strength)}</span><div class="small">${esc(h.where)} · ${esc(h.why)}</div><div class="small"><b>→ ${esc(h.todo)}</b></div></div>`).join('')||'<p class="muted small">떨어진 숫자가 없다</p>'}`;return}
+ if(!trail.length){box.innerHTML='<h2>원인 자리 찾기</h2><p class="muted small">데이터 없음</p>';return}
+ box.innerHTML=`<h2>원인 자리 찾기 <span class="muted small">잃은 매출 = 어제 광고비 × (앞 기간 ROAS − 어제 ROAS)</span></h2>${trail.map((t,i)=>`<div style="margin-top:8px"><b>${esc(t.unit.name)}</b> <span class="badge ${t.decision.startsWith('퍼짐')?'bad':''}">${esc(t.decision.split(' ')[0])}</span><div class="small muted">잃은 매출 ${won(t.unit.lost)} · ROAS ${pct(t.unit.roas_base)} → ${pct(t.unit.roas_now)}</div>${(t.children||[]).slice(0,4).map(k=>`<div class="small" style="display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:6px;margin-top:3px"><span>${esc(k.name)} · 하락 ${pct(k.rate)}</span><span style="text-align:right">${pct(k.share)}</span><span style="grid-column:1/-1;height:5px;border-radius:3px;background:var(--line);position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:${(k.share||0)*100}%;background:var(--bad);border-radius:3px"></i></span></div>`).join('')}</div>`).join('')}<p class="small" style="margin-top:10px">몰림(한 곳이 절반 이상)이면 내려가고, 퍼짐(대부분 같이 하락)이면 멈춘다.</p>`}
+function todoPanel(){const act=R.checks.filter(x=>x.node!=='G'&&(x.status==='bad'||x.status==='warn')).sort((a,b)=>ORD[a.status]-ORD[b.status]||(a.urgency==='즉시'?-1:1));
+ $('#todo').innerHTML=`<h2>할 일 ${act.length}건</h2><div class="issues">${act.map(card).join('')||'<p class="muted">할 일이 없다</p>'}</div>`}
+function sources(){const off=R.sources.filter(x=>!x.on);const cnt=s=>CAT.filter(c=>c.r===R_&&s.unlocks.includes(c.node)).length;
+ $('#sources').innerHTML=`<h2>데이터 연동 <span class="muted small">'못 봄' · '안 봄' 램프를 켜려면</span></h2><table class="stack"><thead><tr><th>상태</th><th>데이터</th><th>이 리듬에서 걸린 점검</th><th>켜지는 자리</th><th>연결 방법</th></tr></thead><tbody>${R.sources.slice().sort((a,b)=>a.on-b.on).map(x=>`<tr><td data-k="상태"><span class="${x.on?'on':'off'}">${x.on?'연결됨':'없음'}</span></td><td data-k="데이터"><b>${esc(x.name)}</b></td><td data-k="이 리듬에서 걸린 점검">${cnt(x)}개</td><td data-k="켜지는 자리">${x.unlocks.map(u=>`<span class="chip">${esc(NAME[u]||u)}</span>`).join('')}</td><td data-k="연결 방법">${esc(x.how)}</td></tr>`).join('')}</tbody></table>`}
+render();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sel){sel=null;render()}});
+let th=null;try{th=localStorage.getItem('roas-board-theme')}catch(e){}if(th)document.documentElement.setAttribute('data-theme',th);
+$('#theme').onclick=()=>{const c=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('roas-board-theme',n)}catch(e){}};
+})();
+</script></body></html>
